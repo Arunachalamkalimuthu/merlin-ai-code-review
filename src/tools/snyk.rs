@@ -62,15 +62,16 @@ impl MerlinTool for SnykTool {
         }
 
         // Sort by severity (critical first)
-        all_vulns.sort_by(|a, b| {
-            severity_order(&a.severity).cmp(&severity_order(&b.severity))
-        });
+        all_vulns.sort_by(|a, b| severity_order(&a.severity).cmp(&severity_order(&b.severity)));
 
         // 3. Format results
         if all_vulns.is_empty() {
             out.push_str("✅ No known vulnerabilities found for the changed dependencies.\n\n");
         } else {
-            let critical_count = all_vulns.iter().filter(|v| v.severity == "critical").count();
+            let critical_count = all_vulns
+                .iter()
+                .filter(|v| v.severity == "critical")
+                .count();
             let high_count = all_vulns.iter().filter(|v| v.severity == "high").count();
 
             if critical_count > 0 || high_count > 0 {
@@ -84,9 +85,10 @@ impl MerlinTool for SnykTool {
             out.push('\n');
 
             // Post inline comments for critical/high vulns
-            for vuln in all_vulns.iter().filter(|v| {
-                v.severity == "critical" || v.severity == "high"
-            }) {
+            for vuln in all_vulns
+                .iter()
+                .filter(|v| v.severity == "critical" || v.severity == "high")
+            {
                 let comment = crate::ai::ReviewComment {
                     file: "package dependencies".to_string(),
                     line: 1,

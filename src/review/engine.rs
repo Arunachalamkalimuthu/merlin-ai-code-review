@@ -58,7 +58,12 @@ impl ReviewEngine {
         platform: Arc<dyn PlatformClient>,
         config: ReviewConfig,
     ) -> Self {
-        Self { ai, platform, config, rag: None }
+        Self {
+            ai,
+            platform,
+            config,
+            rag: None,
+        }
     }
 
     /// Attach a RAG pipeline so each diff chunk is enriched with codebase context.
@@ -166,12 +171,9 @@ impl ReviewEngine {
     /// Second AI pass: send first-pass comments back to AI for critique and filtering.
     ///
     /// The AI is asked to remove false positives, merge duplicates, and confirm severity.
-    async fn reflect_and_review(
-        &self,
-        comments: Vec<ReviewComment>,
-    ) -> Result<Vec<ReviewComment>> {
-        let comments_json = serde_json::to_string_pretty(&comments)
-            .unwrap_or_else(|_| "[]".to_string());
+    async fn reflect_and_review(&self, comments: Vec<ReviewComment>) -> Result<Vec<ReviewComment>> {
+        let comments_json =
+            serde_json::to_string_pretty(&comments).unwrap_or_else(|_| "[]".to_string());
 
         let system = "You are a senior code reviewer performing a quality check on a set of \
                       AI-generated code review comments. Your job is to:\n\
@@ -253,7 +255,8 @@ impl ReviewEngine {
             if let Some(rag) = &self.rag {
                 match crate::rag::retriever::retrieve_context(rag, &ctx.diff_hunk).await {
                     Ok(Some(rag_ctx)) => {
-                        ctx.diff_hunk = format!("{rag_ctx}---\n\n## Diff to review\n\n{}", ctx.diff_hunk);
+                        ctx.diff_hunk =
+                            format!("{rag_ctx}---\n\n## Diff to review\n\n{}", ctx.diff_hunk);
                     }
                     Ok(None) => {}
                     Err(e) => warn!("RAG retrieve failed (continuing without context): {e}"),

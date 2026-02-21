@@ -108,7 +108,10 @@ impl MerlinTool for SecurityTool {
                     let emoji = severity_emoji_str(&f.severity);
                     out.push_str(&format!(
                         "| {emoji} {} | `{}` | {} | {} | {} |\n",
-                        f.severity, f.file, f.line, f.issue,
+                        f.severity,
+                        f.file,
+                        f.line,
+                        f.issue,
                         f.cwe.as_deref().unwrap_or("-")
                     ));
                 }
@@ -140,26 +143,39 @@ impl MerlinTool for SecurityTool {
 /// Regex patterns for common secrets.
 fn secret_patterns() -> Vec<(&'static str, Regex)> {
     let patterns = [
-        ("AWS Access Key",       r"AKIA[0-9A-Z]{16}"),
-        ("AWS Secret Key",       r#"(?i)aws[_\-\s]?secret[_\-\s]?(?:access[_\-\s]?)?key\s*[=:]\s*['\"]?([A-Za-z0-9/+=]{40})"#),
-        ("GitHub Token",         r"ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}"),
-        ("Slack Token",          r"xox[baprs]-[A-Za-z0-9\-]+"),
-        ("Generic API Key",      r#"(?i)api[_\-]?key\s*[=:]\s*['\"]?([A-Za-z0-9\-_]{20,})"#),
-        ("Generic Secret",       r#"(?i)(?:password|passwd|secret|token|credential)\s*[=:]\s*['\"]([^'\"]{8,})['\"]"#),
-        ("Private Key PEM",      r"-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----"),
-        ("Stripe Key",           r"(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{24,}"),
-        ("Anthropic API Key",    r"sk-ant-[A-Za-z0-9\-_]{32,}"),
-        ("OpenAI API Key",       r"sk-[A-Za-z0-9]{32,}"),
+        ("AWS Access Key", r"AKIA[0-9A-Z]{16}"),
+        (
+            "AWS Secret Key",
+            r#"(?i)aws[_\-\s]?secret[_\-\s]?(?:access[_\-\s]?)?key\s*[=:]\s*['\"]?([A-Za-z0-9/+=]{40})"#,
+        ),
+        (
+            "GitHub Token",
+            r"ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}",
+        ),
+        ("Slack Token", r"xox[baprs]-[A-Za-z0-9\-]+"),
+        (
+            "Generic API Key",
+            r#"(?i)api[_\-]?key\s*[=:]\s*['\"]?([A-Za-z0-9\-_]{20,})"#,
+        ),
+        (
+            "Generic Secret",
+            r#"(?i)(?:password|passwd|secret|token|credential)\s*[=:]\s*['\"]([^'\"]{8,})['\"]"#,
+        ),
+        (
+            "Private Key PEM",
+            r"-----BEGIN (?:RSA |EC |DSA )?PRIVATE KEY-----",
+        ),
+        ("Stripe Key", r"(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{24,}"),
+        ("Anthropic API Key", r"sk-ant-[A-Za-z0-9\-_]{32,}"),
+        ("OpenAI API Key", r"sk-[A-Za-z0-9]{32,}"),
     ];
-    patterns.iter()
+    patterns
+        .iter()
         .filter_map(|(name, pat)| Regex::new(pat).ok().map(|r| (*name, r)))
         .collect()
 }
 
-fn scan_for_secrets(
-    _raw_diff: &str,
-    files: &[crate::diff::FileDiff],
-) -> Vec<DetectedSecret> {
+fn scan_for_secrets(_raw_diff: &str, files: &[crate::diff::FileDiff]) -> Vec<DetectedSecret> {
     let patterns = secret_patterns();
     let mut found = Vec::new();
 

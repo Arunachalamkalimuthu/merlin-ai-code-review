@@ -180,19 +180,35 @@ impl PlatformClient for NoOpPlatform {
             "NoOpPlatform: get_diff not available in local mode".to_string(),
         ))
     }
-    async fn post_inline_comment(&self, _comment: &ReviewComment) -> Result<()> { Ok(()) }
-    async fn post_summary(&self, _summary: &str) -> Result<()> { Ok(()) }
-    async fn get_pr_info(&self) -> Result<PrInfo> {
-        Err(MerlinError::Config("Not available in local mode".to_string()))
+    async fn post_inline_comment(&self, _comment: &ReviewComment) -> Result<()> {
+        Ok(())
     }
-    async fn update_description(&self, _title: &str, _body: &str) -> Result<()> { Ok(()) }
-    async fn set_labels(&self, _labels: &[String]) -> Result<()> { Ok(()) }
-    async fn list_issues(&self, _limit: usize) -> Result<Vec<Issue>> { Ok(vec![]) }
-    async fn post_code_suggestions(&self, _s: &[InlineCodeSuggestion]) -> Result<()> { Ok(()) }
+    async fn post_summary(&self, _summary: &str) -> Result<()> {
+        Ok(())
+    }
+    async fn get_pr_info(&self) -> Result<PrInfo> {
+        Err(MerlinError::Config(
+            "Not available in local mode".to_string(),
+        ))
+    }
+    async fn update_description(&self, _title: &str, _body: &str) -> Result<()> {
+        Ok(())
+    }
+    async fn set_labels(&self, _labels: &[String]) -> Result<()> {
+        Ok(())
+    }
+    async fn list_issues(&self, _limit: usize) -> Result<Vec<Issue>> {
+        Ok(vec![])
+    }
+    async fn post_code_suggestions(&self, _s: &[InlineCodeSuggestion]) -> Result<()> {
+        Ok(())
+    }
     async fn update_file(&self, _p: &str, _c: &str, _m: &str, _sha: Option<&str>) -> Result<()> {
         Ok(())
     }
-    async fn get_file(&self, _path: &str) -> Result<Option<(String, String)>> { Ok(None) }
+    async fn get_file(&self, _path: &str) -> Result<Option<(String, String)>> {
+        Ok(None)
+    }
 }
 
 fn detect_platform() -> Result<PlatformType> {

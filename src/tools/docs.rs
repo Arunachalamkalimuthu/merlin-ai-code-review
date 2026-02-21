@@ -153,7 +153,12 @@ async fn generate_readme(
         let updated = format!("{}\n\n{}", content.trim_end(), section.trim());
         let _ = ctx
             .platform
-            .update_file("README.md", &updated, &format!("docs: update README for PR #{}", pr_info.number), Some(&sha))
+            .update_file(
+                "README.md",
+                &updated,
+                &format!("docs: update README for PR #{}", pr_info.number),
+                Some(&sha),
+            )
             .await;
         "README.md has been updated with the new section."
     } else {
@@ -247,7 +252,10 @@ async fn generate_adr(
 
     // Optionally write to docs/adr/ directory
     let adr_path = format!("docs/adr/adr-pr{}.md", pr_info.number);
-    let _ = ctx.platform.update_file(&adr_path, &adr, "docs: add ADR", None).await;
+    let _ = ctx
+        .platform
+        .update_file(&adr_path, &adr, "docs: add ADR", None)
+        .await;
 
     Ok(format!(
         "## Merlin: Architecture Decision Record\n\nWritten to `{adr_path}`:\n\n---\n\n{adr}\n\n\
@@ -272,7 +280,13 @@ async fn generate_module_docs(
 
     let diff_text = files
         .iter()
-        .map(|f| format!("File: {}\n{}", f.path(), crate::digest::compress_diff(f, 60)))
+        .map(|f| {
+            format!(
+                "File: {}\n{}",
+                f.path(),
+                crate::digest::compress_diff(f, 60)
+            )
+        })
         .collect::<Vec<_>>()
         .join("\n\n");
 
@@ -284,8 +298,7 @@ async fn generate_module_docs(
         .trim_end_matches("```")
         .trim();
 
-    let modules: Vec<serde_json::Value> =
-        serde_json::from_str(cleaned).unwrap_or_default();
+    let modules: Vec<serde_json::Value> = serde_json::from_str(cleaned).unwrap_or_default();
 
     let mut out = format!(
         "## Merlin: Module Documentation\n\nFor PR \"{}\"\n\n",
@@ -320,7 +333,11 @@ async fn generate_wiki(
                   - Related pages (suggest titles, not URLs)\n\
                   Write for a developer audience that's new to this feature.";
 
-    let file_list = files.iter().map(|f| f.path()).collect::<Vec<_>>().join(", ");
+    let file_list = files
+        .iter()
+        .map(|f| f.path())
+        .collect::<Vec<_>>()
+        .join(", ");
     let diff_preview = files
         .iter()
         .take(5)

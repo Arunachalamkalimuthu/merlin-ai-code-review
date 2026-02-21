@@ -91,7 +91,11 @@ struct JiraAdfText<'a> {
 
 impl JiraClient {
     pub fn new(config: JiraConfig, api_token: String) -> Self {
-        Self { config, api_token, client: reqwest::Client::new() }
+        Self {
+            config,
+            api_token,
+            client: reqwest::Client::new(),
+        }
     }
 
     fn auth_header(&self) -> Result<String> {
@@ -101,9 +105,10 @@ impl JiraClient {
     }
 
     fn base_url(&self) -> Result<&str> {
-        self.config.base_url.as_deref().ok_or_else(|| {
-            MerlinError::Config("jira.base_url is required".to_string())
-        })
+        self.config
+            .base_url
+            .as_deref()
+            .ok_or_else(|| MerlinError::Config("jira.base_url is required".to_string()))
     }
 
     /// Search for Jira issues matching keywords from the PR title/body.
@@ -133,7 +138,9 @@ impl JiraClient {
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
-            return Err(MerlinError::Platform(format!("Jira search error {status}: {body}")));
+            return Err(MerlinError::Platform(format!(
+                "Jira search error {status}: {body}"
+            )));
         }
 
         let result: JiraSearchResponse = resp.json().await?;
@@ -164,7 +171,10 @@ impl JiraClient {
                 doc_type: "doc",
                 content: vec![JiraAdfParagraph {
                     para_type: "paragraph",
-                    content: vec![JiraAdfText { text_type: "text", text }],
+                    content: vec![JiraAdfText {
+                        text_type: "text",
+                        text,
+                    }],
                 }],
             },
         };
@@ -196,11 +206,7 @@ impl JiraClient {
         };
 
         regex::Regex::new(&pattern)
-            .map(|re| {
-                re.find_iter(text)
-                    .map(|m| m.as_str().to_string())
-                    .collect()
-            })
+            .map(|re| re.find_iter(text).map(|m| m.as_str().to_string()).collect())
             .unwrap_or_default()
     }
 

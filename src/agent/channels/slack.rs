@@ -56,9 +56,8 @@ pub struct SlackChannel {
 impl SlackChannel {
     /// Create a new Slack channel and start the Axum webhook server on `port`.
     pub async fn new(port: u16) -> crate::error::Result<Self> {
-        let bot_token = std::env::var("SLACK_BOT_TOKEN").map_err(|_| {
-            crate::error::MerlinError::EnvVar("SLACK_BOT_TOKEN".to_string())
-        })?;
+        let bot_token = std::env::var("SLACK_BOT_TOKEN")
+            .map_err(|_| crate::error::MerlinError::EnvVar("SLACK_BOT_TOKEN".to_string()))?;
 
         let (task_tx, task_rx) = mpsc::channel::<(AgentTask, String)>(64);
 
@@ -66,7 +65,11 @@ impl SlackChannel {
         tokio::spawn(run_slack_server(port, tx));
 
         info!("Slack Events webhook listening on port {port}");
-        Ok(Self { bot_token, task_rx, client: reqwest::Client::new() })
+        Ok(Self {
+            bot_token,
+            task_rx,
+            client: reqwest::Client::new(),
+        })
     }
 
     /// Post a message to a Slack channel.

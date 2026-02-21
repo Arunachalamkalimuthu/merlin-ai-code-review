@@ -7,12 +7,12 @@
 use std::sync::Arc;
 
 use axum::{
-    Router,
     body::Bytes,
     extract::State,
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
     routing::post,
+    Router,
 };
 use serde::Deserialize;
 use tracing::{info, warn};
@@ -248,8 +248,8 @@ async fn gitlab_handler(
         return StatusCode::INTERNAL_SERVER_ERROR;
     };
 
-    let base_url = std::env::var("CI_API_V4_URL")
-        .unwrap_or_else(|_| "https://gitlab.com/api/v4".to_string());
+    let base_url =
+        std::env::var("CI_API_V4_URL").unwrap_or_else(|_| "https://gitlab.com/api/v4".to_string());
 
     let client = Arc::new(GitLabClient::new(
         token.clone(),
@@ -285,7 +285,11 @@ async fn dispatch_command(
         }
     };
 
-    let ctx = ToolContext { ai, platform: Arc::clone(&platform), arg };
+    let ctx = ToolContext {
+        ai,
+        platform: Arc::clone(&platform),
+        arg,
+    };
 
     match tool.run(&ctx).await {
         Ok(result) => {
@@ -313,8 +317,8 @@ fn verify_github_signature(body: &[u8], secret: &str, signature: &str) -> bool {
         None => return false,
     };
 
-    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes())
-        .expect("HMAC accepts any key size");
+    let mut mac =
+        Hmac::<Sha256>::new_from_slice(secret.as_bytes()).expect("HMAC accepts any key size");
     mac.update(body);
     mac.verify_slice(&sig_bytes).is_ok()
 }

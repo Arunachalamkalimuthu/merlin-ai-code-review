@@ -27,7 +27,9 @@ impl MerlinTool for CoverageTool {
     async fn run(&self, ctx: &ToolContext) -> Result<String> {
         info!("Running /coverage");
 
-        let cfg = crate::config::Config::load_default().unwrap_or_default().coverage;
+        let cfg = crate::config::Config::load_default()
+            .unwrap_or_default()
+            .coverage;
         let format_override = ctx.arg.as_deref();
         let format = format_override.unwrap_or(cfg.format.as_str());
         let report_path = &cfg.report_path;
@@ -84,7 +86,10 @@ impl MerlinTool for CoverageTool {
         // Threshold check
         let threshold_line = if cfg.threshold > 0.0 {
             if overall_pct >= cfg.threshold {
-                format!("✅ Coverage {:.1}% meets threshold of {:.1}%\n\n", overall_pct, cfg.threshold)
+                format!(
+                    "✅ Coverage {:.1}% meets threshold of {:.1}%\n\n",
+                    overall_pct, cfg.threshold
+                )
             } else {
                 format!(
                     "🔴 Coverage {:.1}% is **below threshold of {:.1}%**\n\n",
@@ -92,7 +97,9 @@ impl MerlinTool for CoverageTool {
                 )
             }
         } else {
-            format!("**Overall coverage: {overall_pct:.1}%** ({total_covered}/{total_lines} lines)\n\n")
+            format!(
+                "**Overall coverage: {overall_pct:.1}%** ({total_covered}/{total_lines} lines)\n\n"
+            )
         };
         out.push_str(&threshold_line);
 
@@ -134,17 +141,22 @@ impl MerlinTool for CoverageTool {
         let coverage_summary = changed_paths
             .iter()
             .filter_map(|path| {
-                coverage_map.iter().find(|(k, _)| {
-                    k.as_str() == *path || k.ends_with(path) || path.ends_with(k.as_str())
-                })
-                .map(|(_, fc)| {
-                    let pct = if fc.total_lines > 0 {
-                        (fc.covered_lines as f32 / fc.total_lines as f32) * 100.0
-                    } else {
-                        100.0
-                    };
-                    format!("{path}: {pct:.1}% covered ({}/{} lines)", fc.covered_lines, fc.total_lines)
-                })
+                coverage_map
+                    .iter()
+                    .find(|(k, _)| {
+                        k.as_str() == *path || k.ends_with(path) || path.ends_with(k.as_str())
+                    })
+                    .map(|(_, fc)| {
+                        let pct = if fc.total_lines > 0 {
+                            (fc.covered_lines as f32 / fc.total_lines as f32) * 100.0
+                        } else {
+                            100.0
+                        };
+                        format!(
+                            "{path}: {pct:.1}% covered ({}/{} lines)",
+                            fc.covered_lines, fc.total_lines
+                        )
+                    })
             })
             .collect::<Vec<_>>()
             .join("\n");
@@ -154,7 +166,11 @@ impl MerlinTool for CoverageTool {
                           identify which files need more tests and suggest what scenarios to cover. \
                           Be concise — 2-3 bullet points per low-coverage file. \
                           Only comment on files with < 80% coverage.";
-            let ai_analysis = ctx.ai.generate(system, &coverage_summary).await.unwrap_or_default();
+            let ai_analysis = ctx
+                .ai
+                .generate(system, &coverage_summary)
+                .await
+                .unwrap_or_default();
             if !ai_analysis.trim().is_empty() {
                 out.push_str("\n### AI Coverage Recommendations\n\n");
                 out.push_str(&ai_analysis);

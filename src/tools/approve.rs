@@ -56,9 +56,9 @@ impl MerlinTool for ApproveTool {
             .trim_end_matches("```")
             .trim();
 
-        let value: serde_json::Value = serde_json::from_str(cleaned).unwrap_or_else(|_| {
-            serde_json::json!({"verdict": "COMMENT", "confidence": 50, "summary": raw})
-        });
+        let value: serde_json::Value = serde_json::from_str(cleaned).unwrap_or_else(
+            |_| serde_json::json!({"verdict": "COMMENT", "confidence": 50, "summary": raw}),
+        );
 
         let verdict = value["verdict"].as_str().unwrap_or("COMMENT");
         let confidence = value["confidence"].as_u64().unwrap_or(50);

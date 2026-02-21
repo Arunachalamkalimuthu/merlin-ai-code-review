@@ -22,7 +22,10 @@ pub struct ChromaStore {
 
 impl ChromaStore {
     pub fn new(base_url: String) -> Self {
-        Self { base_url, client: reqwest::Client::new() }
+        Self {
+            base_url,
+            client: reqwest::Client::new(),
+        }
     }
 
     fn api(&self, path: &str) -> String {
@@ -172,9 +175,7 @@ impl VectorStore for ChromaStore {
             .zip(r.distances)
             .zip(r.documents)
             .zip(r.metadatas)
-            .flat_map(|(((_, dists), docs), metas)| {
-                dists.into_iter().zip(docs).zip(metas)
-            })
+            .flat_map(|(((_, dists), docs), metas)| dists.into_iter().zip(docs).zip(metas))
             .filter_map(|((dist, doc_opt), meta_opt)| {
                 let content = doc_opt?;
                 let score = 1.0 - dist; // convert distance → similarity
@@ -182,8 +183,7 @@ impl VectorStore for ChromaStore {
                     return None;
                 }
                 let meta = meta_opt.unwrap_or(serde_json::json!({}));
-                let source =
-                    meta["source"].as_str().unwrap_or("unknown").to_string();
+                let source = meta["source"].as_str().unwrap_or("unknown").to_string();
                 Some(RetrievedDoc {
                     content,
                     source,

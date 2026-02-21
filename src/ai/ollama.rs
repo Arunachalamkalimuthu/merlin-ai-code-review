@@ -44,7 +44,11 @@ impl OllamaProvider {
     ///
     /// `base_url` is typically `http://localhost:11434`.
     pub fn new(config: AiConfig, base_url: String) -> Self {
-        Self { config, base_url, client: reqwest::Client::new() }
+        Self {
+            config,
+            base_url,
+            client: reqwest::Client::new(),
+        }
     }
 }
 
@@ -86,8 +90,14 @@ impl AiProvider for OllamaProvider {
         let request = OllamaRequest {
             model: self.config.model.clone(),
             messages: vec![
-                OllamaMessage { role: "system".to_string(), content: system.to_string() },
-                OllamaMessage { role: "user".to_string(), content: user.to_string() },
+                OllamaMessage {
+                    role: "system".to_string(),
+                    content: system.to_string(),
+                },
+                OllamaMessage {
+                    role: "user".to_string(),
+                    content: user.to_string(),
+                },
             ],
             stream: false,
             options: OllamaOptions {

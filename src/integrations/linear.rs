@@ -56,10 +56,18 @@ struct GraphqlError {
 
 impl LinearClient {
     pub fn new(config: LinearConfig, api_key: String) -> Self {
-        Self { config, api_key, client: reqwest::Client::new() }
+        Self {
+            config,
+            api_key,
+            client: reqwest::Client::new(),
+        }
     }
 
-    async fn graphql(&self, query: &str, variables: serde_json::Value) -> Result<serde_json::Value> {
+    async fn graphql(
+        &self,
+        query: &str,
+        variables: serde_json::Value,
+    ) -> Result<serde_json::Value> {
         debug!("Sending Linear GraphQL request");
 
         let resp = self
@@ -67,24 +75,37 @@ impl LinearClient {
             .post(LINEAR_API_URL)
             .header("Authorization", &self.api_key)
             .header("Content-Type", "application/json")
-            .json(&GraphqlRequest { query: query.to_string(), variables })
+            .json(&GraphqlRequest {
+                query: query.to_string(),
+                variables,
+            })
             .send()
             .await?;
 
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
-            return Err(MerlinError::Platform(format!("Linear API error {status}: {body}")));
+            return Err(MerlinError::Platform(format!(
+                "Linear API error {status}: {body}"
+            )));
         }
 
         let result: GraphqlResponse = resp.json().await?;
 
         if let Some(errors) = result.errors {
-            let msg = errors.into_iter().map(|e| e.message).collect::<Vec<_>>().join("; ");
-            return Err(MerlinError::Platform(format!("Linear GraphQL errors: {msg}")));
+            let msg = errors
+                .into_iter()
+                .map(|e| e.message)
+                .collect::<Vec<_>>()
+                .join("; ");
+            return Err(MerlinError::Platform(format!(
+                "Linear GraphQL errors: {msg}"
+            )));
         }
 
-        result.data.ok_or_else(|| MerlinError::Platform("Empty Linear response".to_string()))
+        result
+            .data
+            .ok_or_else(|| MerlinError::Platform("Empty Linear response".to_string()))
     }
 
     /// Search for Linear issues matching the given query text.

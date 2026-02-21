@@ -23,7 +23,14 @@ impl GitLabClient {
         mr_iid: u64,
         head_sha: String,
     ) -> Self {
-        Self { token, base_url, project_id, mr_iid, head_sha, client: reqwest::Client::new() }
+        Self {
+            token,
+            base_url,
+            project_id,
+            mr_iid,
+            head_sha,
+            client: reqwest::Client::new(),
+        }
     }
 
     pub fn from_env(token: String) -> Result<Self> {
@@ -122,7 +129,10 @@ impl PlatformClient for GitLabClient {
 
         let mut diff = String::new();
         for file in &files {
-            diff.push_str(&format!("--- a/{}\n+++ b/{}\n", file.old_path, file.new_path));
+            diff.push_str(&format!(
+                "--- a/{}\n+++ b/{}\n",
+                file.old_path, file.new_path
+            ));
             diff.push_str(&file.diff);
             diff.push('\n');
         }
@@ -371,7 +381,10 @@ impl PlatformClient for GitLabClient {
         let bytes = STANDARD
             .decode(&file.content)
             .map_err(|e| MerlinError::Platform(format!("Base64 decode: {e}")))?;
-        Ok(Some((String::from_utf8_lossy(&bytes).into_owned(), file.blob_id)))
+        Ok(Some((
+            String::from_utf8_lossy(&bytes).into_owned(),
+            file.blob_id,
+        )))
     }
 }
 

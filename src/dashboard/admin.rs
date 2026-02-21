@@ -188,7 +188,10 @@ async fn delete_rule(
         info!("Deleted review rule: {id}");
         (StatusCode::OK, Json(serde_json::json!({"deleted": id})))
     } else {
-        (StatusCode::NOT_FOUND, Json(serde_json::json!({"error": "not found"})))
+        (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "not found"})),
+        )
     }
 }
 
@@ -202,7 +205,11 @@ async fn create_user(
     Json(req): Json<CreateUserRequest>,
 ) -> impl IntoResponse {
     let now = crate::audit::AuditEvent::now();
-    let user = User { identity: req.identity.clone(), role: req.role, added_at: now };
+    let user = User {
+        identity: req.identity.clone(),
+        role: req.role,
+        added_at: now,
+    };
 
     {
         let mut s = state.inner.write().unwrap();
@@ -217,9 +224,8 @@ async fn create_user(
 
 async fn show_config() -> impl IntoResponse {
     // Load and redact sensitive fields
-    let raw = std::fs::read_to_string("merlin.toml").unwrap_or_else(|_| {
-        "# merlin.toml not found in current directory".to_string()
-    });
+    let raw = std::fs::read_to_string("merlin.toml")
+        .unwrap_or_else(|_| "# merlin.toml not found in current directory".to_string());
     // Redact any lines containing token/key/password/secret
     let redacted = raw
         .lines()
@@ -248,31 +254,32 @@ async fn admin_html(State(state): State<SharedAdminState>) -> impl IntoResponse 
         (s.rules.clone(), s.users.clone())
     };
 
-    let rules_rows = rules
-        .iter()
-        .fold(String::new(), |mut acc, r| {
-            let enabled = if r.enabled { "✅" } else { "❌" };
-            let pattern = r.file_pattern.as_deref().unwrap_or("*");
-            acc.push_str(&format!(
-                "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>\
+    let rules_rows = rules.iter().fold(String::new(), |mut acc, r| {
+        let enabled = if r.enabled { "✅" } else { "❌" };
+        let pattern = r.file_pattern.as_deref().unwrap_or("*");
+        acc.push_str(&format!(
+            "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>\
                  <td><button onclick=\"deleteRule('{id}')\" class=\"del\">🗑</button></td></tr>",
-                r.name, r.instruction, r.severity, pattern, enabled,
-                id = r.id
-            ));
-            acc
-        });
+            r.name,
+            r.instruction,
+            r.severity,
+            pattern,
+            enabled,
+            id = r.id
+        ));
+        acc
+    });
 
-    let users_rows = users
-        .iter()
-        .fold(String::new(), |mut acc, u| {
-            acc.push_str(&format!(
-                "<tr><td>{}</td><td>{:?}</td><td>{}</td></tr>",
-                u.identity, u.role, u.added_at
-            ));
-            acc
-        });
+    let users_rows = users.iter().fold(String::new(), |mut acc, u| {
+        acc.push_str(&format!(
+            "<tr><td>{}</td><td>{:?}</td><td>{}</td></tr>",
+            u.identity, u.role, u.added_at
+        ));
+        acc
+    });
 
-    Html(format!(r#"<!DOCTYPE html>
+    Html(format!(
+        r#"<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -385,7 +392,8 @@ async function addUser() {{
 }}
 </script>
 </body>
-</html>"#))
+</html>"#
+    ))
 }
 
 /// Generate a simple unique ID (timestamp-based, no UUID dep).

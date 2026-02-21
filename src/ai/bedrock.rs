@@ -45,11 +45,20 @@ impl BedrockProvider {
         session_token: Option<String>,
         config: AiConfig,
     ) -> Self {
-        Self { access_key, secret_key, session_token, config, client: reqwest::Client::new() }
+        Self {
+            access_key,
+            secret_key,
+            session_token,
+            config,
+            client: reqwest::Client::new(),
+        }
     }
 
     fn region(&self) -> &str {
-        self.config.bedrock_region.as_deref().unwrap_or(DEFAULT_REGION)
+        self.config
+            .bedrock_region
+            .as_deref()
+            .unwrap_or(DEFAULT_REGION)
     }
 
     fn endpoint(&self) -> String {
@@ -76,21 +85,18 @@ impl BedrockProvider {
 
         // Step 1: Canonical request
         let payload_hash = hex::encode(Sha256::digest(payload.as_bytes()));
-        let canonical_headers = format!(
-            "content-type:application/json\nhost:{host}\nx-amz-date:{datetime}\n"
-        );
+        let canonical_headers =
+            format!("content-type:application/json\nhost:{host}\nx-amz-date:{datetime}\n");
         let signed_headers = "content-type;host;x-amz-date";
-        let canonical_request = format!(
-            "{method}\n{path}\n\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
-        );
+        let canonical_request =
+            format!("{method}\n{path}\n\n{canonical_headers}\n{signed_headers}\n{payload_hash}");
 
         // Step 2: String to sign
         let region = self.region();
         let credential_scope = format!("{date}/{region}/{BEDROCK_SERVICE}/aws4_request");
         let request_hash = hex::encode(Sha256::digest(canonical_request.as_bytes()));
-        let string_to_sign = format!(
-            "AWS4-HMAC-SHA256\n{datetime}\n{credential_scope}\n{request_hash}"
-        );
+        let string_to_sign =
+            format!("AWS4-HMAC-SHA256\n{datetime}\n{credential_scope}\n{request_hash}");
 
         // Step 3: Derive signing key
         let signing_key = self.derive_signing_key(date, region)?;
@@ -143,19 +149,37 @@ fn utc_now() -> (String, String) {
 fn format_utc(secs: u64) -> String {
     // Days since epoch
     let mut remaining = secs;
-    let seconds = remaining % 60; remaining /= 60;
-    let minutes = remaining % 60; remaining /= 60;
-    let hours = remaining % 24; remaining /= 24;
+    let seconds = remaining % 60;
+    remaining /= 60;
+    let minutes = remaining % 60;
+    remaining /= 60;
+    let hours = remaining % 24;
+    remaining /= 24;
 
     let mut days = remaining as u32;
     let mut year = 1970u32;
     loop {
         let days_in_year = if is_leap(year) { 366 } else { 365 };
-        if days < days_in_year { break; }
+        if days < days_in_year {
+            break;
+        }
         days -= days_in_year;
         year += 1;
     }
-    let month_days: [u32; 12] = [31, if is_leap(year) { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let month_days: [u32; 12] = [
+        31,
+        if is_leap(year) { 29 } else { 28 },
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ];
     let mut month = 0usize;
     while month < 11 && days >= month_days[month] {
         days -= month_days[month];
@@ -212,11 +236,13 @@ impl AiProvider for BedrockProvider {
             anthropic_version: "bedrock-2023-05-31",
             max_tokens: self.config.max_tokens,
             system: system.to_string(),
-            messages: vec![BedrockMessage { role: "user", content: user.to_string() }],
+            messages: vec![BedrockMessage {
+                role: "user",
+                content: user.to_string(),
+            }],
         };
 
-        let payload =
-            serde_json::to_string(&request).map_err(MerlinError::Json)?;
+        let payload = serde_json::to_string(&request).map_err(MerlinError::Json)?;
 
         let (datetime, date) = utc_now();
         let auth_header = self.sign_request("POST", &url, &payload, &datetime, &date)?;
@@ -239,7 +265,9 @@ impl AiProvider for BedrockProvider {
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
-            return Err(MerlinError::AiProvider(format!("Bedrock error {status}: {body}")));
+            return Err(MerlinError::AiProvider(format!(
+                "Bedrock error {status}: {body}"
+            )));
         }
 
         let result: BedrockResponse = resp.json().await?;
@@ -254,17 +282,22 @@ impl AiProvider for BedrockProvider {
     #[instrument(skip(self, ctx), fields(file = %ctx.file))]
     async fn review(&self, ctx: &ReviewContext) -> Result<Vec<ReviewComment>> {
         let system = system_prompt(&[
-            "bugs".to_string(), "security".to_string(),
-            "style".to_string(), "performance".to_string(),
+            "bugs".to_string(),
+            "security".to_string(),
+            "style".to_string(),
+            "performance".to_string(),
         ]);
         let user = format!(
             "Review the following diff for file `{}`:\n\n```diff\n{}\n```",
             ctx.file, ctx.diff_hunk
         );
         let raw = self.generate(&system, &user).await?;
-        let cleaned = raw.trim()
-            .trim_start_matches("```json").trim_start_matches("```")
-            .trim_end_matches("```").trim();
+        let cleaned = raw
+            .trim()
+            .trim_start_matches("```json")
+            .trim_start_matches("```")
+            .trim_end_matches("```")
+            .trim();
         serde_json::from_str(cleaned).map_err(|e| {
             MerlinError::AiProvider(format!(
                 "Failed to parse Bedrock response: {e}\nRaw: {cleaned}"

@@ -25,8 +25,7 @@ use crate::ai::{system_prompt, AiProvider, ReviewComment, ReviewContext};
 use crate::config::AiConfig;
 use crate::error::{MerlinError, Result};
 
-const GEMINI_API_BASE: &str =
-    "https://generativelanguage.googleapis.com/v1beta/models";
+const GEMINI_API_BASE: &str = "https://generativelanguage.googleapis.com/v1beta/models";
 
 // ── Public provider struct ────────────────────────────────────────────────────
 
@@ -42,7 +41,11 @@ pub struct GeminiProvider {
 impl GeminiProvider {
     /// Create a new provider.
     pub fn new(api_key: String, config: AiConfig) -> Self {
-        Self { api_key, config, client: reqwest::Client::new() }
+        Self {
+            api_key,
+            config,
+            client: reqwest::Client::new(),
+        }
     }
 
     /// Build the `generateContent` endpoint URL for the configured model.
@@ -103,11 +106,15 @@ impl AiProvider for GeminiProvider {
         let request = GeminiRequest {
             system_instruction: Some(GeminiContent {
                 role: None,
-                parts: vec![GeminiPart { text: system.to_string() }],
+                parts: vec![GeminiPart {
+                    text: system.to_string(),
+                }],
             }),
             contents: vec![GeminiContent {
                 role: Some("user".to_string()),
-                parts: vec![GeminiPart { text: user.to_string() }],
+                parts: vec![GeminiPart {
+                    text: user.to_string(),
+                }],
             }],
             generation_config: GeminiGenerationConfig {
                 temperature: self.config.temperature,
@@ -120,7 +127,7 @@ impl AiProvider for GeminiProvider {
         let resp = self
             .client
             .post(self.endpoint_url())
-            .header("x-goog-api-key", &self.api_key)  // key in header, NOT in URL
+            .header("x-goog-api-key", &self.api_key) // key in header, NOT in URL
             .json(&request)
             .send()
             .await?;
@@ -128,7 +135,9 @@ impl AiProvider for GeminiProvider {
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
-            return Err(MerlinError::AiProvider(format!("Gemini API {status}: {body}")));
+            return Err(MerlinError::AiProvider(format!(
+                "Gemini API {status}: {body}"
+            )));
         }
 
         let result: GeminiResponse = resp.json().await?;

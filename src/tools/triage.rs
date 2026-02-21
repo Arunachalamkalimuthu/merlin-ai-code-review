@@ -40,8 +40,7 @@ impl MerlinTool for TriageTool {
             }
         } else {
             // Auto-detect from CI env
-            let github_repo =
-                std::env::var("GITHUB_REPOSITORY").unwrap_or_default();
+            let github_repo = std::env::var("GITHUB_REPOSITORY").unwrap_or_default();
             match CodeTriageClient::parse_github_repo(&github_repo) {
                 Some(pair) => pair,
                 None => {
@@ -76,8 +75,12 @@ impl MerlinTool for TriageTool {
         }
 
         // 2. Search for related issues using PR title keywords
-        let keywords: String =
-            pr_info.title.split_whitespace().take(5).collect::<Vec<_>>().join(" ");
+        let keywords: String = pr_info
+            .title
+            .split_whitespace()
+            .take(5)
+            .collect::<Vec<_>>()
+            .join(" ");
 
         let issues = client
             .search_issues(&owner, &repo, &keywords, 10)
@@ -85,7 +88,9 @@ impl MerlinTool for TriageTool {
             .unwrap_or_default();
 
         out.push_str("### Related Open Issues\n\n");
-        out.push_str(&CodeTriageClient::format_issues_table(&issues, &owner, &repo));
+        out.push_str(&CodeTriageClient::format_issues_table(
+            &issues, &owner, &repo,
+        ));
 
         // 3. AI suggestion for which issue this PR might close
         if !issues.is_empty() {
@@ -99,10 +104,7 @@ impl MerlinTool for TriageTool {
                           Given a PR title and a list of open issues, identify \
                           which issue(s) this PR most likely addresses. \
                           Be concise — one sentence per suggestion.";
-            let user = format!(
-                "PR: \"{}\"\n\nOpen issues:\n{}",
-                pr_info.title, issues_text
-            );
+            let user = format!("PR: \"{}\"\n\nOpen issues:\n{}", pr_info.title, issues_text);
             let suggestion = ctx.ai.generate(system, &user).await.unwrap_or_default();
             if !suggestion.trim().is_empty() {
                 out.push_str("\n### AI Suggestion\n\n");
@@ -111,8 +113,10 @@ impl MerlinTool for TriageTool {
             }
         }
 
-        out.push_str("\n*Powered by [CodeTriage](https://www.codetriage.com/) · \
-                      [Merlin](https://github.com/you/merlin) 🦡*");
+        out.push_str(
+            "\n*Powered by [CodeTriage](https://www.codetriage.com/) · \
+                      [Merlin](https://github.com/you/merlin) 🦡*",
+        );
         Ok(out)
     }
 }

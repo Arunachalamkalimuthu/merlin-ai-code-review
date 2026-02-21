@@ -167,7 +167,11 @@ pub fn prioritize_diffs(files: Vec<FileDiff>, token_budget: Option<usize>) -> Ve
         .map(|f| {
             let priority = classify_priority(f.path());
             let estimated_tokens = estimate_tokens(&f.diff_text());
-            PrioritizedDiff { file: f, priority, estimated_tokens }
+            PrioritizedDiff {
+                file: f,
+                priority,
+                estimated_tokens,
+            }
         })
         .collect();
 
@@ -207,9 +211,9 @@ pub fn build_pr_status(
         let lower = f.path().to_lowercase();
         lower.contains("migration") || lower.contains("migrate") || lower.ends_with(".sql")
     });
-    let has_secrets_risk = files.iter().any(|f| {
-        classify_priority(f.path()) == FilePriority::Critical
-    });
+    let has_secrets_risk = files
+        .iter()
+        .any(|f| classify_priority(f.path()) == FilePriority::Critical);
 
     PrStatus {
         title: info.title.clone(),
@@ -292,9 +296,22 @@ impl ComplexityScore {
 
 /// Branch-introducing keywords in common languages.
 static BRANCH_KEYWORDS: &[&str] = &[
-    " if ", " else ", " elif ", " match ", " case ", " switch ",
-    " for ", " while ", " loop ", " foreach ", " catch ", " except ",
-    "?.","||", "&&", " ? ",
+    " if ",
+    " else ",
+    " elif ",
+    " match ",
+    " case ",
+    " switch ",
+    " for ",
+    " while ",
+    " loop ",
+    " foreach ",
+    " catch ",
+    " except ",
+    "?.",
+    "||",
+    "&&",
+    " ? ",
 ];
 
 /// Compute a composite complexity score for a set of file diffs.
@@ -379,7 +396,9 @@ pub fn compress_diff(file: &FileDiff, max_added_lines: usize) -> String {
     }
 
     if omitted > 0 {
-        out.push_str(&format!("\n... [{omitted} lines omitted for token budget] ...\n"));
+        out.push_str(&format!(
+            "\n... [{omitted} lines omitted for token budget] ...\n"
+        ));
     }
     out
 }
@@ -390,7 +409,10 @@ mod tests {
 
     #[test]
     fn test_classify_priority() {
-        assert_eq!(classify_priority("src/auth/handler.rs"), FilePriority::Critical);
+        assert_eq!(
+            classify_priority("src/auth/handler.rs"),
+            FilePriority::Critical
+        );
         assert_eq!(classify_priority("Cargo.lock"), FilePriority::Low);
         assert_eq!(classify_priority("tests/unit.rs"), FilePriority::Medium);
         assert_eq!(classify_priority("src/api/routes.rs"), FilePriority::High);

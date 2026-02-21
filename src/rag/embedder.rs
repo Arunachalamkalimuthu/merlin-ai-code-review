@@ -28,7 +28,11 @@ pub struct OllamaEmbedder {
 
 impl OllamaEmbedder {
     pub fn new(base_url: String, model: String) -> Self {
-        Self { base_url, model, client: reqwest::Client::new() }
+        Self {
+            base_url,
+            model,
+            client: reqwest::Client::new(),
+        }
     }
 }
 
@@ -55,7 +59,10 @@ impl Embedder for OllamaEmbedder {
         let resp = self
             .client
             .post(format!("{}/api/embeddings", self.base_url))
-            .json(&OllamaEmbedRequest { model: &self.model, prompt: text })
+            .json(&OllamaEmbedRequest {
+                model: &self.model,
+                prompt: text,
+            })
             .send()
             .await?;
 
@@ -92,7 +99,11 @@ pub struct OpenAiEmbedder {
 
 impl OpenAiEmbedder {
     pub fn new(api_key: String, model: String) -> Self {
-        Self { api_key, model, client: reqwest::Client::new() }
+        Self {
+            api_key,
+            model,
+            client: reqwest::Client::new(),
+        }
     }
 
     /// Build from environment — reads `OPENAI_API_KEY`.
@@ -132,7 +143,10 @@ impl Embedder for OpenAiEmbedder {
             .client
             .post("https://api.openai.com/v1/embeddings")
             .bearer_auth(&self.api_key)
-            .json(&OpenAiEmbedRequest { model: &self.model, input: text })
+            .json(&OpenAiEmbedRequest {
+                model: &self.model,
+                input: text,
+            })
             .send()
             .await?;
 
@@ -150,9 +164,7 @@ impl Embedder for OpenAiEmbedder {
             .next()
             .map(|d| d.embedding)
             .ok_or_else(|| {
-                MerlinError::AiProvider(
-                    "OpenAI embeddings response contained no data".to_string(),
-                )
+                MerlinError::AiProvider("OpenAI embeddings response contained no data".to_string())
             })
     }
 }

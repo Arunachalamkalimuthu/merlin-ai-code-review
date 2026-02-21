@@ -16,7 +16,7 @@ use merlin::rag::build_pipeline;
 use merlin::review::ReviewEngine;
 use merlin::tools::{route_command, ToolContext};
 use merlin::update;
-use merlin::webhook::{WebhookState, serve};
+use merlin::webhook::{serve, WebhookState};
 
 #[derive(Parser)]
 #[command(
@@ -179,8 +179,8 @@ async fn run() -> Result<()> {
             match diff {
                 Some(diff_path) => {
                     let raw_diff = std::fs::read_to_string(&diff_path)?;
-                    let platform =
-                        Arc::from(merlin::platform::NoOpPlatform) as Arc<dyn merlin::platform::PlatformClient>;
+                    let platform = Arc::from(merlin::platform::NoOpPlatform)
+                        as Arc<dyn merlin::platform::PlatformClient>;
                     let engine = ReviewEngine::new(ai, platform, config.review);
                     let comments = engine.run_local(&raw_diff).await?;
                     print_output(&comments, &output);
@@ -195,12 +195,20 @@ async fn run() -> Result<()> {
         }
 
         // ── merlin run /command ──────────────────────────────────────────────
-        Commands::Run { command, args, output } => {
+        Commands::Run {
+            command,
+            args,
+            output,
+        } => {
             let ai = Arc::from(build_provider(&config.ai)?);
             let platform = Arc::from(build_client(&config.platform)?);
 
             let tool = route_command(&command)?;
-            let arg = if args.is_empty() { None } else { Some(args.join(" ")) };
+            let arg = if args.is_empty() {
+                None
+            } else {
+                Some(args.join(" "))
+            };
             let ctx = ToolContext { ai, platform, arg };
 
             let result = tool.run(&ctx).await?;
@@ -208,7 +216,10 @@ async fn run() -> Result<()> {
             match output {
                 OutputFormat::Json => {
                     let json = serde_json::json!({"result": result});
-                    println!("{}", serde_json::to_string_pretty(&json).unwrap_or_default());
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&json).unwrap_or_default()
+                    );
                 }
                 OutputFormat::Text => println!("{result}"),
             }
@@ -230,16 +241,26 @@ async fn run() -> Result<()> {
         }
 
         // ── merlin agent ─────────────────────────────────────────────────────
-        Commands::Agent { channel, port, task } => {
+        Commands::Agent {
+            channel,
+            port,
+            task,
+        } => {
             let ai = std::sync::Arc::from(build_provider(&config.ai)?);
 
             // Platform is optional for the agent (not every task needs it)
-            let platform = build_client(&config.platform).ok().map(std::sync::Arc::from);
+            let platform = build_client(&config.platform)
+                .ok()
+                .map(std::sync::Arc::from);
 
             let mut agent_cfg = config.agent.clone();
             agent_cfg.port = port;
 
-            let ctx = AgentContext { ai, platform, config: config.clone() };
+            let ctx = AgentContext {
+                ai,
+                platform,
+                config: config.clone(),
+            };
             let mut runtime = AgentRuntime::new(ctx, &agent_cfg);
 
             if let Some(task_str) = task {
@@ -265,7 +286,9 @@ async fn run() -> Result<()> {
                     }
                     _ => {
                         // Default: CLI REPL
-                        println!("🧙 Merlin Agent — type your task and press Enter (\"exit\" to quit)");
+                        println!(
+                            "🧙 Merlin Agent — type your task and press Enter (\"exit\" to quit)"
+                        );
                         let mut cli = CliChannel::new();
                         runtime.run_channel(&mut cli).await?;
                     }
@@ -282,12 +305,8 @@ async fn run() -> Result<()> {
             let pipeline = build_pipeline(&config.rag);
             match action {
                 RagAction::Index { root } => {
-                    let n = merlin::rag::indexer::index_directory(
-                        &pipeline,
-                        &root,
-                        &config.rag,
-                    )
-                    .await?;
+                    let n = merlin::rag::indexer::index_directory(&pipeline, &root, &config.rag)
+                        .await?;
                     println!("Indexed {n} chunks from {:?}", root);
                 }
                 RagAction::Search { query, limit } => {
@@ -343,7 +362,10 @@ async fn run() -> Result<()> {
 fn print_output(comments: &[merlin::ai::ReviewComment], format: &OutputFormat) {
     match format {
         OutputFormat::Json => {
-            println!("{}", serde_json::to_string_pretty(comments).unwrap_or_default());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(comments).unwrap_or_default()
+            );
         }
         OutputFormat::Text => {
             if comments.is_empty() {
@@ -364,4 +386,3 @@ fn print_output(comments: &[merlin::ai::ReviewComment], format: &OutputFormat) {
         }
     }
 }
-

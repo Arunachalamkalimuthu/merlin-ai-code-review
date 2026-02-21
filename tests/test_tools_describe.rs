@@ -44,14 +44,20 @@ async fn describe_updates_pr_description_with_json_response() {
     let platform = Arc::new(MockPlatform::new(common::sample_diff(), make_pr_info()));
     let ctx = make_ctx(ai, Arc::clone(&platform));
 
-    DescribeTool.run(&ctx).await.expect("DescribeTool should succeed");
+    DescribeTool
+        .run(&ctx)
+        .await
+        .expect("DescribeTool should succeed");
 
     let (title, body) = platform
         .last_description()
         .expect("update_description should have been called");
 
     assert_eq!(title, "fix: correct null check");
-    assert!(body.contains("Summary"), "Body should contain description content");
+    assert!(
+        body.contains("Summary"),
+        "Body should contain description content"
+    );
 }
 
 #[tokio::test]
@@ -63,7 +69,11 @@ async fn describe_falls_back_gracefully_on_non_json() {
     let ctx = make_ctx(ai, Arc::clone(&platform));
 
     let result = DescribeTool.run(&ctx).await;
-    assert!(result.is_ok(), "Should not error on non-JSON AI response: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "Should not error on non-JSON AI response: {:?}",
+        result
+    );
     assert!(
         platform.last_description().is_some(),
         "update_description should still be called"
@@ -115,7 +125,10 @@ index 000..222 100644
     let platform = Arc::new(MockPlatform::new(diff, make_pr_info()));
     let ctx = make_ctx(ai, Arc::clone(&platform));
 
-    DescribeTool.run(&ctx).await.expect("should handle multiple files");
+    DescribeTool
+        .run(&ctx)
+        .await
+        .expect("should handle multiple files");
     assert!(platform.last_description().is_some());
 }
 

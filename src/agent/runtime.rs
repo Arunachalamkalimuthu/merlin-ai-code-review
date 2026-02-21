@@ -101,7 +101,8 @@ impl AgentRuntime {
                     format!("❌ Error: {}", result.output)
                 };
 
-                self.memory.push(AgentMessage::tool_result(call.name.clone(), formatted));
+                self.memory
+                    .push(AgentMessage::tool_result(call.name.clone(), formatted));
             }
         }
 
@@ -116,7 +117,8 @@ impl AgentRuntime {
         );
         let prompt = self.build_conversation_transcript();
         let final_response = self.ctx.ai.generate(&system_final, &prompt).await?;
-        self.memory.push(AgentMessage::assistant(final_response.clone()));
+        self.memory
+            .push(AgentMessage::assistant(final_response.clone()));
         Ok(final_response)
     }
 
@@ -142,8 +144,11 @@ impl AgentRuntime {
     // ── Internal helpers ──────────────────────────────────────────────────────
 
     fn build_system_prompt(&self) -> String {
-        let tool_lines: Vec<String> =
-            self.tools.iter().map(|t| t.definition().to_prompt_line()).collect();
+        let tool_lines: Vec<String> = self
+            .tools
+            .iter()
+            .map(|t| t.definition().to_prompt_line())
+            .collect();
         let tools_text = tool_lines.join("\n");
 
         format!(
@@ -190,14 +195,20 @@ impl AgentRuntime {
     /// Find and execute the tool matching `call.name`.
     async fn dispatch_tool(&self, call: &ToolCall, ctx: AgentContext) -> ToolResult {
         // Find the matching tool (borrows self.tools briefly)
-        let tool: Option<Arc<dyn AgentTool>> =
-            self.tools.iter().find(|t| t.definition().name == call.name).cloned();
+        let tool: Option<Arc<dyn AgentTool>> = self
+            .tools
+            .iter()
+            .find(|t| t.definition().name == call.name)
+            .cloned();
 
         match tool {
             Some(t) => t.call(&call.parameters, &ctx).await,
             None => {
-                let available: Vec<String> =
-                    self.tools.iter().map(|t| t.definition().name.clone()).collect();
+                let available: Vec<String> = self
+                    .tools
+                    .iter()
+                    .map(|t| t.definition().name.clone())
+                    .collect();
                 ToolResult {
                     tool_name: call.name.clone(),
                     output: format!(
@@ -272,8 +283,7 @@ Let me know."#;
 
     #[test]
     fn test_strip_tool_calls() {
-        let text =
-            "Thinking...\n<tool_call>{\"name\":\"x\"}</tool_call>\nDone.";
+        let text = "Thinking...\n<tool_call>{\"name\":\"x\"}</tool_call>\nDone.";
         let stripped = strip_tool_calls(text);
         assert!(!stripped.contains("<tool_call>"));
         assert!(stripped.contains("Thinking"));

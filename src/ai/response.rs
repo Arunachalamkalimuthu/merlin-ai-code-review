@@ -60,9 +60,7 @@ pub fn parse_review_response(text: &str) -> Result<Vec<ReviewComment>> {
     for key in &["comments", "reviews", "issues", "results"] {
         if let Some(arr) = value.get(key) {
             return serde_json::from_value(arr.clone()).map_err(|e| {
-                MerlinError::AiProvider(format!(
-                    "Failed to deserialise wrapped '{key}' array: {e}"
-                ))
+                MerlinError::AiProvider(format!("Failed to deserialise wrapped '{key}' array: {e}"))
             });
         }
     }

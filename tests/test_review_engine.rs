@@ -11,7 +11,12 @@ use merlin::review::ReviewEngine;
 use common::{make_comment, make_pr_info, MockAi, MockPlatform};
 
 fn default_cfg() -> ReviewConfig {
-    ReviewConfig { max_comments: 20, chunk_lines: 100, reflect: false, ..Default::default() }
+    ReviewConfig {
+        max_comments: 20,
+        chunk_lines: 100,
+        reflect: false,
+        ..Default::default()
+    }
 }
 
 fn engine(ai: MockAi, platform: Arc<MockPlatform>) -> ReviewEngine {
@@ -28,7 +33,10 @@ fn engine(ai: MockAi, platform: Arc<MockPlatform>) -> ReviewEngine {
 async fn run_local_empty_diff_returns_no_comments() {
     let platform = Arc::new(MockPlatform::new("", make_pr_info()));
     let eng = engine(MockAi::with_comments(vec![]), Arc::clone(&platform));
-    let comments = eng.run_local("").await.expect("should succeed on empty diff");
+    let comments = eng
+        .run_local("")
+        .await
+        .expect("should succeed on empty diff");
     assert!(comments.is_empty());
 }
 
@@ -44,19 +52,29 @@ async fn run_local_deduplicates_same_file_line_title() {
         suggestion: None,
     };
     let platform = Arc::new(MockPlatform::new(common::sample_diff(), make_pr_info()));
-    let eng = engine(MockAi::with_comments(vec![dup.clone(), dup]), Arc::clone(&platform));
+    let eng = engine(
+        MockAi::with_comments(vec![dup.clone(), dup]),
+        Arc::clone(&platform),
+    );
 
     let result = eng.run_local(common::sample_diff()).await.unwrap();
-    assert_eq!(result.len(), 1, "Duplicate (file+line+title) should be deduplicated");
+    assert_eq!(
+        result.len(),
+        1,
+        "Duplicate (file+line+title) should be deduplicated"
+    );
 }
 
 #[tokio::test]
 async fn run_local_keeps_distinct_comments() {
     let c1 = make_comment("a.rs", 1, Severity::High);
-    let c2 = make_comment("b.rs", 2, Severity::Medium);  // different file
-    let c3 = make_comment("a.rs", 5, Severity::Low);     // same file, different line
+    let c2 = make_comment("b.rs", 2, Severity::Medium); // different file
+    let c3 = make_comment("a.rs", 5, Severity::Low); // same file, different line
     let platform = Arc::new(MockPlatform::new(common::sample_diff(), make_pr_info()));
-    let eng = engine(MockAi::with_comments(vec![c1, c2, c3]), Arc::clone(&platform));
+    let eng = engine(
+        MockAi::with_comments(vec![c1, c2, c3]),
+        Arc::clone(&platform),
+    );
 
     let result = eng.run_local(common::sample_diff()).await.unwrap();
     assert_eq!(result.len(), 3, "All distinct comments should be kept");
@@ -77,7 +95,10 @@ async fn run_local_caps_at_max_comments() {
         .collect();
 
     let platform = Arc::new(MockPlatform::new(common::sample_diff(), make_pr_info()));
-    let cfg = ReviewConfig { max_comments: 5, ..default_cfg() };
+    let cfg = ReviewConfig {
+        max_comments: 5,
+        ..default_cfg()
+    };
     let eng = ReviewEngine::new(
         Arc::new(MockAi::with_comments(many)),
         Arc::clone(&platform) as Arc<dyn PlatformClient>,
@@ -85,7 +106,11 @@ async fn run_local_caps_at_max_comments() {
     );
 
     let result = eng.run_local(common::sample_diff()).await.unwrap();
-    assert!(result.len() <= 5, "Should cap at max_comments=5, got {}", result.len());
+    assert!(
+        result.len() <= 5,
+        "Should cap at max_comments=5, got {}",
+        result.len()
+    );
 }
 
 #[tokio::test]
@@ -100,7 +125,11 @@ async fn run_local_sorts_critical_first() {
 
     let result = eng.run_local(common::sample_diff()).await.unwrap();
     assert!(!result.is_empty());
-    assert_eq!(result[0].severity, Severity::Critical, "Critical should come first");
+    assert_eq!(
+        result[0].severity,
+        Severity::Critical,
+        "Critical should come first"
+    );
 }
 
 // ── run (full pipeline) ───────────────────────────────────────────────────────
@@ -115,8 +144,13 @@ async fn run_posts_summary_after_review() {
 
     eng.run().await.expect("run should succeed");
 
-    let summary = platform.last_summary().expect("post_summary should be called");
-    assert!(summary.contains("Merlin"), "Summary should include branding");
+    let summary = platform
+        .last_summary()
+        .expect("post_summary should be called");
+    assert!(
+        summary.contains("Merlin"),
+        "Summary should include branding"
+    );
 }
 
 #[tokio::test]
@@ -147,8 +181,8 @@ async fn run_returns_empty_on_no_diff() {
 
 #[test]
 fn summary_mentions_all_severities() {
-    use merlin::review::engine::build_summary;
     use merlin::ai::Severity;
+    use merlin::review::engine::build_summary;
 
     let comments = vec![
         make_comment("a.rs", 1, Severity::Critical),
@@ -176,5 +210,8 @@ fn summary_includes_file_table() {
     use merlin::review::engine::build_summary;
     let comments = vec![make_comment("src/lib.rs", 10, Severity::High)];
     let summary = build_summary(&comments, None);
-    assert!(summary.contains("src/lib.rs"), "Summary table should list file name");
+    assert!(
+        summary.contains("src/lib.rs"),
+        "Summary table should list file name"
+    );
 }

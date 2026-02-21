@@ -45,7 +45,7 @@ pub struct SnykIssueAttributes {
     pub title: String,
     #[serde(default)]
     pub description: String,
-    pub severity: String,          // "critical" | "high" | "medium" | "low"
+    pub severity: String, // "critical" | "high" | "medium" | "low"
     #[serde(default)]
     pub cwe: Vec<String>,
     #[serde(default)]
@@ -90,7 +90,11 @@ pub struct SnykClient {
 
 impl SnykClient {
     pub fn new(token: String, org_id: Option<String>) -> Self {
-        Self { token, org_id, client: reqwest::Client::new() }
+        Self {
+            token,
+            org_id,
+            client: reqwest::Client::new(),
+        }
     }
 
     pub fn from_env(config: &SnykConfig) -> Result<Self> {
@@ -142,8 +146,10 @@ impl SnykClient {
             return Ok(vec![]);
         }
 
-        let result: SnykIssuesResponse =
-            resp.json().await.unwrap_or_else(|_| SnykIssuesResponse { data: vec![] });
+        let result: SnykIssuesResponse = resp
+            .json()
+            .await
+            .unwrap_or_else(|_| SnykIssuesResponse { data: vec![] });
 
         Ok(result
             .data
@@ -296,9 +302,15 @@ fn parse_pypi_dependency(line: &str) -> Option<DetectedPackage> {
 
 fn parse_cargo_dependency(line: &str) -> Option<DetectedPackage> {
     // Matches: 'serde = { version = "1.0" }' or 'serde = "1.0"'
-    let re = regex::Regex::new(r#"^([a-z0-9_-]+)\s*=\s*(?:\{[^}]*version\s*=\s*"([^"]+)"|\s*"([^"]+)")"#).ok()?;
+    let re = regex::Regex::new(
+        r#"^([a-z0-9_-]+)\s*=\s*(?:\{[^}]*version\s*=\s*"([^"]+)"|\s*"([^"]+)")"#,
+    )
+    .ok()?;
     let caps = re.captures(line.trim())?;
-    let version = caps.get(2).or_else(|| caps.get(3)).map(|m| m.as_str().to_string());
+    let version = caps
+        .get(2)
+        .or_else(|| caps.get(3))
+        .map(|m| m.as_str().to_string());
     Some(DetectedPackage {
         ecosystem: "cargo",
         name: caps[1].to_string(),

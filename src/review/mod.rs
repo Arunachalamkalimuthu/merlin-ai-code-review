@@ -6,8 +6,8 @@ use async_trait::async_trait;
 use std::sync::Arc;
 use tracing::info;
 
-use crate::tools::{MerlinTool, ToolContext};
 use crate::error::Result;
+use crate::tools::{MerlinTool, ToolContext};
 
 /// MerlinTool adapter for the full /review flow.
 pub struct ReviewTool;

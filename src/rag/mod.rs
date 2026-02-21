@@ -122,14 +122,23 @@ impl RagPipeline {
         store: Box<dyn VectorStore>,
         config: RagConfig,
     ) -> Self {
-        Self { embedder, store, config }
+        Self {
+            embedder,
+            store,
+            config,
+        }
     }
 
     /// Retrieve the most relevant documents for a query string.
     pub async fn retrieve(&self, query: &str, limit: usize) -> Result<Vec<RetrievedDoc>> {
         let q_vec = self.embedder.embed(query).await?;
         self.store
-            .search(&self.config.collection, &q_vec, limit, self.config.min_score)
+            .search(
+                &self.config.collection,
+                &q_vec,
+                limit,
+                self.config.min_score,
+            )
             .await
     }
 
@@ -148,7 +157,9 @@ impl RagPipeline {
         }
 
         let dim = pairs[0].1.len();
-        self.store.ensure_collection(&self.config.collection, dim).await?;
+        self.store
+            .ensure_collection(&self.config.collection, dim)
+            .await?;
         let count = pairs.len();
         self.store.upsert(&self.config.collection, &pairs).await?;
         Ok(count)
@@ -177,10 +188,7 @@ pub fn build_pipeline(config: &RagConfig) -> RagPipeline {
         EmbedderType::Openai => {
             match embedder::OpenAiEmbedder::from_env(config.embed_model.clone()) {
                 Ok(e) => {
-                    tracing::info!(
-                        "RAG: using OpenAI embedder (model={})",
-                        config.embed_model
-                    );
+                    tracing::info!("RAG: using OpenAI embedder (model={})", config.embed_model);
                     Box::new(e)
                 }
                 Err(e) => {
@@ -216,13 +224,14 @@ pub fn build_pipeline(config: &RagConfig) -> RagPipeline {
             config.qdrant_url.clone(),
             config.qdrant_api_key.clone(),
         )),
-        VectorStoreType::Chroma => Box::new(store::chroma::ChromaStore::new(
-            config.chroma_url.clone(),
-        )),
+        VectorStoreType::Chroma => {
+            Box::new(store::chroma::ChromaStore::new(config.chroma_url.clone()))
+        }
         VectorStoreType::Pinecone => Box::new(store::pinecone::PineconeStore::new(
-            config.pinecone_api_key.clone().or_else(|| {
-                std::env::var("PINECONE_API_KEY").ok()
-            }),
+            config
+                .pinecone_api_key
+                .clone()
+                .or_else(|| std::env::var("PINECONE_API_KEY").ok()),
             config.pinecone_host.clone(),
         )),
     };

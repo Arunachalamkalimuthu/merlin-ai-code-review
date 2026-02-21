@@ -50,15 +50,15 @@ pub struct LocalStore {
 impl LocalStore {
     pub fn new(path: String) -> Self {
         let index = load_from_file(&path);
-        Self { path, index: RwLock::new(index) }
+        Self {
+            path,
+            index: RwLock::new(index),
+        }
     }
 }
 
-fn load_from_file(
-    path: &str,
-) -> std::collections::HashMap<String, Vec<Entry>> {
-    let mut map: std::collections::HashMap<String, Vec<Entry>> =
-        std::collections::HashMap::new();
+fn load_from_file(path: &str) -> std::collections::HashMap<String, Vec<Entry>> {
+    let mut map: std::collections::HashMap<String, Vec<Entry>> = std::collections::HashMap::new();
 
     let Ok(content) = std::fs::read_to_string(path) else {
         return map;
@@ -91,9 +91,10 @@ impl VectorStore for LocalStore {
             .append(true)
             .open(&self.path)?;
 
-        let mut index = self.index.write().map_err(|_| {
-            MerlinError::Other("LocalStore: RwLock poisoned".to_string())
-        })?;
+        let mut index = self
+            .index
+            .write()
+            .map_err(|_| MerlinError::Other("LocalStore: RwLock poisoned".to_string()))?;
         let entries = index.entry(collection.to_string()).or_default();
 
         for (doc, emb) in docs {
@@ -134,9 +135,10 @@ impl VectorStore for LocalStore {
         limit: usize,
         min_score: f32,
     ) -> Result<Vec<RetrievedDoc>> {
-        let index = self.index.read().map_err(|_| {
-            MerlinError::Other("LocalStore: RwLock poisoned".to_string())
-        })?;
+        let index = self
+            .index
+            .read()
+            .map_err(|_| MerlinError::Other("LocalStore: RwLock poisoned".to_string()))?;
 
         let Some(entries) = index.get(collection) else {
             return Ok(vec![]);
@@ -175,16 +177,18 @@ impl VectorStore for LocalStore {
 
     async fn clear(&self, collection: &str) -> Result<()> {
         {
-            let mut index = self.index.write().map_err(|_| {
-                MerlinError::Other("LocalStore: RwLock poisoned".to_string())
-            })?;
+            let mut index = self
+                .index
+                .write()
+                .map_err(|_| MerlinError::Other("LocalStore: RwLock poisoned".to_string()))?;
             index.remove(collection);
         }
 
         // Rewrite the file without this collection's records
-        let index = self.index.read().map_err(|_| {
-            MerlinError::Other("LocalStore: RwLock poisoned".to_string())
-        })?;
+        let index = self
+            .index
+            .read()
+            .map_err(|_| MerlinError::Other("LocalStore: RwLock poisoned".to_string()))?;
         let mut f = std::fs::File::create(&self.path)?;
         for (col, entries) in index.iter() {
             for e in entries {
@@ -206,9 +210,10 @@ impl VectorStore for LocalStore {
     }
 
     async fn count(&self, collection: &str) -> Result<usize> {
-        let index = self.index.read().map_err(|_| {
-            MerlinError::Other("LocalStore: RwLock poisoned".to_string())
-        })?;
+        let index = self
+            .index
+            .read()
+            .map_err(|_| MerlinError::Other("LocalStore: RwLock poisoned".to_string()))?;
         Ok(index.get(collection).map(|e| e.len()).unwrap_or(0))
     }
 }
@@ -256,7 +261,10 @@ mod tests {
         let path = dir.path().join("rag.jsonl").to_string_lossy().to_string();
         let store = LocalStore::new(path);
 
-        store.upsert("col", &[make_doc("a", "hello")]).await.unwrap();
+        store
+            .upsert("col", &[make_doc("a", "hello")])
+            .await
+            .unwrap();
         assert_eq!(store.count("col").await.unwrap(), 1);
 
         store.clear("col").await.unwrap();
@@ -293,7 +301,10 @@ mod tests {
 
         {
             let store = LocalStore::new(path.clone());
-            store.upsert("col", &[make_doc("id1", "hello world")]).await.unwrap();
+            store
+                .upsert("col", &[make_doc("id1", "hello world")])
+                .await
+                .unwrap();
         }
 
         // Reload from disk

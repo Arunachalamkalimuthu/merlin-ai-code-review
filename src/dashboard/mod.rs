@@ -47,47 +47,40 @@ async fn health() -> impl IntoResponse {
 }
 
 /// JSON API — return last 100 audit events.
-async fn dashboard_events(
-    State(state): State<DashboardState>,
-) -> impl IntoResponse {
+async fn dashboard_events(State(state): State<DashboardState>) -> impl IntoResponse {
     let events = state.logger.read_recent(100);
     Json(events)
 }
 
 /// HTML dashboard page.
-async fn dashboard_html(
-    State(state): State<DashboardState>,
-) -> impl IntoResponse {
+async fn dashboard_html(State(state): State<DashboardState>) -> impl IntoResponse {
     let events = state.logger.read_recent(100);
 
-    let rows: String = events
-        .iter()
-        .rev()
-        .fold(String::new(), |mut acc, e| {
-            let kind = format!("{:?}", e.kind);
-            let command = e.command.as_deref().unwrap_or("—");
-            let actor = e.actor.as_deref().unwrap_or("—");
-            let result = e.result.as_deref().unwrap_or("");
-            let error = e.error.as_deref().unwrap_or("");
-            let pr = e
-                .pr_url
-                .as_deref()
-                .map(|u| format!("<a href=\"{u}\" target=\"_blank\">{u}</a>"))
-                .unwrap_or_else(|| "—".to_string());
+    let rows: String = events.iter().rev().fold(String::new(), |mut acc, e| {
+        let kind = format!("{:?}", e.kind);
+        let command = e.command.as_deref().unwrap_or("—");
+        let actor = e.actor.as_deref().unwrap_or("—");
+        let result = e.result.as_deref().unwrap_or("");
+        let error = e.error.as_deref().unwrap_or("");
+        let pr = e
+            .pr_url
+            .as_deref()
+            .map(|u| format!("<a href=\"{u}\" target=\"_blank\">{u}</a>"))
+            .unwrap_or_else(|| "—".to_string());
 
-            let status_cell = if error.is_empty() {
-                format!("<td class=\"ok\">{result}</td>")
-            } else {
-                format!("<td class=\"err\">❌ {error}</td>")
-            };
+        let status_cell = if error.is_empty() {
+            format!("<td class=\"ok\">{result}</td>")
+        } else {
+            format!("<td class=\"err\">❌ {error}</td>")
+        };
 
-            acc.push_str(&format!(
-                "<tr><td>{ts}</td><td>{kind}</td><td>{command}</td>\
+        acc.push_str(&format!(
+            "<tr><td>{ts}</td><td>{kind}</td><td>{command}</td>\
                  <td>{actor}</td><td>{pr}</td>{status_cell}</tr>",
-                ts = e.timestamp,
-            ));
-            acc
-        });
+            ts = e.timestamp,
+        ));
+        acc
+    });
 
     let version = state.version;
     let html = format!(

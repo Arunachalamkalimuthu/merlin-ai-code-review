@@ -16,14 +16,22 @@ pub struct AgentMemory {
 impl AgentMemory {
     /// Create an in-memory-only memory store.
     pub fn new(max_messages: usize) -> Self {
-        Self { messages: VecDeque::new(), max_messages, persist_path: None }
+        Self {
+            messages: VecDeque::new(),
+            max_messages,
+            persist_path: None,
+        }
     }
 
     /// Create a memory store that also appends messages to a JSONL file.
     /// Existing messages are loaded from the file on startup.
     pub fn with_persistence(max_messages: usize, path: String) -> Self {
         let messages = VecDeque::from(Self::load_from_file(&path));
-        Self { messages, max_messages, persist_path: Some(path) }
+        Self {
+            messages,
+            max_messages,
+            persist_path: Some(path),
+        }
     }
 
     /// Add a message to memory. Evicts oldest message when at capacity.
@@ -68,8 +76,10 @@ impl AgentMemory {
 
 fn append_to_file(path: &str, message: &AgentMessage) {
     if let Ok(line) = serde_json::to_string(message) {
-        if let Ok(mut f) =
-            std::fs::OpenOptions::new().create(true).append(true).open(path)
+        if let Ok(mut f) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
         {
             let _ = writeln!(f, "{line}");
         }
@@ -110,7 +120,11 @@ mod tests {
     #[test]
     fn test_memory_persistence() {
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("memory.jsonl").to_string_lossy().to_string();
+        let path = dir
+            .path()
+            .join("memory.jsonl")
+            .to_string_lossy()
+            .to_string();
 
         {
             let mut mem = AgentMemory::with_persistence(100, path.clone());

@@ -68,15 +68,25 @@ impl AzureDevOpsClient {
         let pr_id: u64 = std::env::var("SYSTEM_PULLREQUEST_PULLREQUESTID")
             .map_err(|_| MerlinError::EnvVar("SYSTEM_PULLREQUEST_PULLREQUESTID".to_string()))?
             .parse()
-            .map_err(|_| MerlinError::Config("Invalid SYSTEM_PULLREQUEST_PULLREQUESTID".to_string()))?;
+            .map_err(|_| {
+                MerlinError::Config("Invalid SYSTEM_PULLREQUEST_PULLREQUESTID".to_string())
+            })?;
 
         let head_sha = std::env::var("BUILD_SOURCEVERSION")
             .map_err(|_| MerlinError::EnvVar("BUILD_SOURCEVERSION".to_string()))?;
 
-        let target_branch = std::env::var("SYSTEM_PULLREQUEST_TARGETBRANCH")
-            .unwrap_or_else(|_| "main".to_string());
+        let target_branch =
+            std::env::var("SYSTEM_PULLREQUEST_TARGETBRANCH").unwrap_or_else(|_| "main".to_string());
 
-        Ok(Self::new(token, org_url, project, repo_id, pr_id, head_sha, target_branch))
+        Ok(Self::new(
+            token,
+            org_url,
+            project,
+            repo_id,
+            pr_id,
+            head_sha,
+            target_branch,
+        ))
     }
 
     /// Base API URL for git operations.
@@ -103,12 +113,26 @@ impl AzureDevOpsClient {
     async fn get_pr_target_sha(&self) -> Option<String> {
         let url = self.git_url(&format!("pullRequests/{}", self.pr_id));
         #[derive(Deserialize)]
-        struct Pr { #[serde(rename = "lastMergeTargetCommit")] last_merge_target_commit: Option<Commit> }
+        struct Pr {
+            #[serde(rename = "lastMergeTargetCommit")]
+            last_merge_target_commit: Option<Commit>,
+        }
         #[derive(Deserialize)]
-        struct Commit { #[serde(rename = "commitId")] commit_id: String }
-        self.client.get(&url).header("Authorization", self.bearer()).send().await.ok()?
-            .json::<Pr>().await.ok()?
-            .last_merge_target_commit.map(|c| c.commit_id)
+        struct Commit {
+            #[serde(rename = "commitId")]
+            commit_id: String,
+        }
+        self.client
+            .get(&url)
+            .header("Authorization", self.bearer())
+            .send()
+            .await
+            .ok()?
+            .json::<Pr>()
+            .await
+            .ok()?
+            .last_merge_target_commit
+            .map(|c| c.commit_id)
     }
 }
 
@@ -248,15 +272,24 @@ impl PlatformClient for AzureDevOpsClient {
         // 1. Get latest iteration ID
         let iter_url = self.git_url(&format!("pullRequests/{}/iterations", self.pr_id));
         #[derive(Deserialize)]
-        struct IterList { value: Vec<Iter> }
+        struct IterList {
+            value: Vec<Iter>,
+        }
         #[derive(Deserialize)]
-        struct Iter { id: u64 }
+        struct Iter {
+            id: u64,
+        }
 
         let iters: IterList = self
-            .client.get(&iter_url).header("Authorization", self.bearer())
-            .send().await?
-            .error_for_status().map_err(|e| MerlinError::Platform(format!("ADO iterations: {e}")))?
-            .json().await?;
+            .client
+            .get(&iter_url)
+            .header("Authorization", self.bearer())
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| MerlinError::Platform(format!("ADO iterations: {e}")))?
+            .json()
+            .await?;
 
         let iter_id = iters.value.iter().map(|i| i.id).max().unwrap_or(1);
 
@@ -266,10 +299,15 @@ impl PlatformClient for AzureDevOpsClient {
             self.pr_id, iter_id
         ));
         let changes: AdoIterationChanges = self
-            .client.get(&changes_url).header("Authorization", self.bearer())
-            .send().await?
-            .error_for_status().map_err(|e| MerlinError::Platform(format!("ADO changes: {e}")))?
-            .json().await?;
+            .client
+            .get(&changes_url)
+            .header("Authorization", self.bearer())
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| MerlinError::Platform(format!("ADO changes: {e}")))?
+            .json()
+            .await?;
 
         let target_sha = self.get_pr_target_sha().await.unwrap_or_default();
 
@@ -308,19 +346,30 @@ impl PlatformClient for AzureDevOpsClient {
 
         let file_path = format!("/{}", comment.file.trim_start_matches('/'));
         let payload = AdoCommentThread {
-            comments: vec![AdoComment { content: &body_text, comment_type: 1 }],
+            comments: vec![AdoComment {
+                content: &body_text,
+                comment_type: 1,
+            }],
             status: 1,
             thread_context: Some(AdoThreadContext {
                 file_path: &file_path,
-                right_file_start: AdoFilePosition { line: comment.line, offset: 1 },
-                right_file_end: AdoFilePosition { line: comment.line, offset: 1 },
+                right_file_start: AdoFilePosition {
+                    line: comment.line,
+                    offset: 1,
+                },
+                right_file_end: AdoFilePosition {
+                    line: comment.line,
+                    offset: 1,
+                },
             }),
         };
 
-        self.client.post(&url)
+        self.client
+            .post(&url)
             .header("Authorization", self.bearer())
             .json(&payload)
-            .send().await?
+            .send()
+            .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("ADO inline comment: {e}")))?;
         Ok(())
@@ -330,15 +379,20 @@ impl PlatformClient for AzureDevOpsClient {
     async fn post_summary(&self, summary: &str) -> Result<()> {
         let url = self.git_url(&format!("pullRequests/{}/threads", self.pr_id));
         let payload = AdoCommentThread {
-            comments: vec![AdoComment { content: summary, comment_type: 1 }],
+            comments: vec![AdoComment {
+                content: summary,
+                comment_type: 1,
+            }],
             status: 1,
             thread_context: None,
         };
 
-        self.client.post(&url)
+        self.client
+            .post(&url)
             .header("Authorization", self.bearer())
             .json(&payload)
-            .send().await?
+            .send()
+            .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("ADO summary: {e}")))?;
         Ok(())
@@ -348,10 +402,15 @@ impl PlatformClient for AzureDevOpsClient {
     async fn get_pr_info(&self) -> Result<PrInfo> {
         let url = self.git_url(&format!("pullRequests/{}", self.pr_id));
         let pr: AdoPr = self
-            .client.get(&url).header("Authorization", self.bearer())
-            .send().await?
-            .error_for_status().map_err(|e| MerlinError::Platform(format!("ADO PR info: {e}")))?
-            .json().await?;
+            .client
+            .get(&url)
+            .header("Authorization", self.bearer())
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| MerlinError::Platform(format!("ADO PR info: {e}")))?
+            .json()
+            .await?;
 
         let strip_refs = |r: &str| r.replace("refs/heads/", "");
 
@@ -364,7 +423,12 @@ impl PlatformClient for AzureDevOpsClient {
             head_branch: strip_refs(&pr.source_ref_name),
             author: pr.created_by.display_name,
             is_draft: pr.is_draft.unwrap_or(false),
-            labels: pr.labels.unwrap_or_default().into_iter().map(|l| l.name).collect(),
+            labels: pr
+                .labels
+                .unwrap_or_default()
+                .into_iter()
+                .map(|l| l.name)
+                .collect(),
             files_changed: 0,
             additions: 0,
             deletions: 0,
@@ -374,12 +438,17 @@ impl PlatformClient for AzureDevOpsClient {
     #[instrument(skip(self))]
     async fn update_description(&self, title: &str, body: &str) -> Result<()> {
         let url = self.git_url(&format!("pullRequests/{}", self.pr_id));
-        let payload = AdoUpdatePr { title, description: body };
+        let payload = AdoUpdatePr {
+            title,
+            description: body,
+        };
 
-        self.client.patch(&url)
+        self.client
+            .patch(&url)
             .header("Authorization", self.bearer())
             .json(&payload)
-            .send().await?
+            .send()
+            .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("ADO update PR: {e}")))?;
         Ok(())
@@ -394,10 +463,12 @@ impl PlatformClient for AzureDevOpsClient {
         );
         for label in labels {
             let payload = AdoLabelBody { name: label };
-            self.client.post(&url)
+            self.client
+                .post(&url)
                 .header("Authorization", self.bearer())
                 .json(&payload)
-                .send().await?
+                .send()
+                .await?
                 .error_for_status()
                 .map_err(|e| MerlinError::Platform(format!("ADO set label '{label}': {e}")))?;
         }
@@ -416,72 +487,97 @@ impl PlatformClient for AzureDevOpsClient {
         let body = AdoWiql { query };
 
         let result: AdoWorkItemQueryResult = self
-            .client.post(&wit_url)
+            .client
+            .post(&wit_url)
             .header("Authorization", self.bearer())
             .json(&body)
-            .send().await?
-            .error_for_status().map_err(|e| MerlinError::Platform(format!("ADO WIQL: {e}")))?
-            .json().await?;
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| MerlinError::Platform(format!("ADO WIQL: {e}")))?
+            .json()
+            .await?;
 
         let ids: Vec<u64> = result.work_items.iter().take(limit).map(|w| w.id).collect();
         if ids.is_empty() {
             return Ok(vec![]);
         }
 
-        let ids_str = ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(",");
+        let ids_str = ids
+            .iter()
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
         let items_url = format!(
             "{}/{}/_apis/wit/workItems?ids={}&fields=System.Title,System.Description,System.Tags&api-version={API_VERSION}",
             self.org_url, self.project, ids_str
         );
 
         #[derive(Deserialize)]
-        struct WorkItemList { value: Vec<AdoWorkItem> }
+        struct WorkItemList {
+            value: Vec<AdoWorkItem>,
+        }
         let items: WorkItemList = self
-            .client.get(&items_url)
+            .client
+            .get(&items_url)
             .header("Authorization", self.bearer())
-            .send().await?
-            .error_for_status().map_err(|e| MerlinError::Platform(format!("ADO work items: {e}")))?
-            .json().await?;
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| MerlinError::Platform(format!("ADO work items: {e}")))?
+            .json()
+            .await?;
 
-        Ok(items.value.into_iter().map(|i| Issue {
-            number: i.id,
-            title: i.fields.title,
-            body: i.fields.description.unwrap_or_default(),
-            labels: i.fields.tags
-                .unwrap_or_default()
-                .split(';')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect(),
-            url: format!(
-                "{}/_workitems/edit/{}",
-                self.org_url, i.id
-            ),
-        }).collect())
+        Ok(items
+            .value
+            .into_iter()
+            .map(|i| Issue {
+                number: i.id,
+                title: i.fields.title,
+                body: i.fields.description.unwrap_or_default(),
+                labels: i
+                    .fields
+                    .tags
+                    .unwrap_or_default()
+                    .split(';')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect(),
+                url: format!("{}/_workitems/edit/{}", self.org_url, i.id),
+            })
+            .collect())
     }
 
     async fn post_code_suggestions(&self, suggestions: &[InlineCodeSuggestion]) -> Result<()> {
         // Azure DevOps doesn't support one-click suggestion blocks; post as thread comments.
         for s in suggestions {
-            let body = format!(
-                "{}\n\n```suggestion\n{}\n```",
-                s.description, s.suggestion
-            );
+            let body = format!("{}\n\n```suggestion\n{}\n```", s.description, s.suggestion);
             let file_path = format!("/{}", s.file.trim_start_matches('/'));
             let url = self.git_url(&format!("pullRequests/{}/threads", self.pr_id));
             let payload = AdoCommentThread {
-                comments: vec![AdoComment { content: &body, comment_type: 1 }],
+                comments: vec![AdoComment {
+                    content: &body,
+                    comment_type: 1,
+                }],
                 status: 1,
                 thread_context: Some(AdoThreadContext {
                     file_path: &file_path,
-                    right_file_start: AdoFilePosition { line: s.start_line, offset: 1 },
-                    right_file_end: AdoFilePosition { line: s.end_line, offset: 1 },
+                    right_file_start: AdoFilePosition {
+                        line: s.start_line,
+                        offset: 1,
+                    },
+                    right_file_end: AdoFilePosition {
+                        line: s.end_line,
+                        offset: 1,
+                    },
                 }),
             };
-            self.client.post(&url)
+            self.client
+                .post(&url)
                 .header("Authorization", self.bearer())
                 .json(&payload)
-                .send().await?
+                .send()
+                .await?
                 .error_for_status()
                 .map_err(|e| MerlinError::Platform(format!("ADO suggestion: {e}")))?;
         }
@@ -497,22 +593,33 @@ impl PlatformClient for AzureDevOpsClient {
         _current_sha: Option<&str>,
     ) -> Result<()> {
         // Need to get the current branch SHA first
-        let branch_url = self.git_url_extra(
-            &format!("refs?filter=heads/{}", self.target_branch),
-            "",
-        );
+        let branch_url =
+            self.git_url_extra(&format!("refs?filter=heads/{}", self.target_branch), "");
         #[derive(Deserialize)]
-        struct RefList { value: Vec<GitRef> }
+        struct RefList {
+            value: Vec<GitRef>,
+        }
         #[derive(Deserialize)]
-        struct GitRef { #[serde(rename = "objectId")] object_id: String }
+        struct GitRef {
+            #[serde(rename = "objectId")]
+            object_id: String,
+        }
 
         let refs: RefList = self
-            .client.get(&branch_url).header("Authorization", self.bearer())
-            .send().await?
-            .error_for_status().map_err(|e| MerlinError::Platform(format!("ADO refs: {e}")))?
-            .json().await?;
+            .client
+            .get(&branch_url)
+            .header("Authorization", self.bearer())
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| MerlinError::Platform(format!("ADO refs: {e}")))?
+            .json()
+            .await?;
 
-        let old_sha = refs.value.first().map(|r| r.object_id.clone())
+        let old_sha = refs
+            .value
+            .first()
+            .map(|r| r.object_id.clone())
             .unwrap_or_else(|| "0000000000000000000000000000000000000000".to_string());
 
         let push_url = self.git_url("pushes");
@@ -540,10 +647,12 @@ impl PlatformClient for AzureDevOpsClient {
             }]
         });
 
-        self.client.post(&push_url)
+        self.client
+            .post(&push_url)
             .header("Authorization", self.bearer())
             .json(&payload)
-            .send().await?
+            .send()
+            .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("ADO update file: {e}")))?;
         Ok(())
@@ -551,21 +660,32 @@ impl PlatformClient for AzureDevOpsClient {
 
     #[instrument(skip(self))]
     async fn get_file(&self, path: &str) -> Result<Option<(String, String)>> {
-        let normalized = if path.starts_with('/') { path.to_string() } else { format!("/{path}") };
-        let url = format!(
+        let normalized = if path.starts_with('/') {
+            path.to_string()
+        } else {
+            format!("/{path}")
+        };
+        let url =
+            format!(
             "{}/{}/{}/_apis/git/repositories/{}/items?path={}&version={}&api-version={API_VERSION}",
             self.org_url, self.project, self.project, self.repo_id,
             urlencoding(&normalized), self.head_sha
         );
 
-        let resp = self.client.get(&url).header("Authorization", self.bearer()).send().await?;
+        let resp = self
+            .client
+            .get(&url)
+            .header("Authorization", self.bearer())
+            .send()
+            .await?;
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             return Ok(None);
         }
         let text = resp
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("ADO get file: {e}")))?
-            .text().await?;
+            .text()
+            .await?;
 
         Ok(Some((text, self.head_sha.clone())))
     }
@@ -575,16 +695,26 @@ impl PlatformClient for AzureDevOpsClient {
 
 impl AzureDevOpsClient {
     async fn fetch_file_at(&self, path: &str, sha: &str) -> Option<String> {
-        let normalized = if path.starts_with('/') { path.to_string() } else { format!("/{path}") };
-        let url = format!(
+        let normalized = if path.starts_with('/') {
+            path.to_string()
+        } else {
+            format!("/{path}")
+        };
+        let url =
+            format!(
             "{}/{}/{}/_apis/git/repositories/{}/items?path={}&version={}&api-version={API_VERSION}",
             self.org_url, self.project, self.project, self.repo_id,
             urlencoding(&normalized), sha
         );
-        self.client.get(&url)
+        self.client
+            .get(&url)
             .header("Authorization", self.bearer())
-            .send().await.ok()?
-            .text().await.ok()
+            .send()
+            .await
+            .ok()?
+            .text()
+            .await
+            .ok()
     }
 }
 
@@ -601,7 +731,10 @@ fn build_pseudo_diff(
 ) -> String {
     match (change_type, old, new) {
         ("delete", Some(old_content), _) => {
-            let mut diff = format!("--- a/{file_path}\n+++ /dev/null\n@@ -1,{} +0,0 @@\n", old_content.lines().count());
+            let mut diff = format!(
+                "--- a/{file_path}\n+++ /dev/null\n@@ -1,{} +0,0 @@\n",
+                old_content.lines().count()
+            );
             for line in old_content.lines() {
                 diff.push('-');
                 diff.push_str(line);
@@ -610,7 +743,10 @@ fn build_pseudo_diff(
             diff
         }
         ("add", _, Some(new_content)) => {
-            let mut diff = format!("--- /dev/null\n+++ b/{file_path}\n@@ -0,0 +1,{} @@\n", new_content.lines().count());
+            let mut diff = format!(
+                "--- /dev/null\n+++ b/{file_path}\n@@ -0,0 +1,{} @@\n",
+                new_content.lines().count()
+            );
             for line in new_content.lines() {
                 diff.push('+');
                 diff.push_str(line);
@@ -624,7 +760,8 @@ fn build_pseudo_diff(
             let new_lines: Vec<&str> = new_content.lines().collect();
             let mut diff = format!(
                 "--- a/{file_path}\n+++ b/{file_path}\n@@ -1,{} +1,{} @@\n",
-                old_lines.len(), new_lines.len()
+                old_lines.len(),
+                new_lines.len()
             );
             // Show removed lines then added lines (simplified, not true LCS diff)
             for line in &old_lines {
@@ -644,7 +781,10 @@ fn build_pseudo_diff(
             diff
         }
         (_, _, Some(new_content)) => {
-            let mut diff = format!("--- /dev/null\n+++ b/{file_path}\n@@ -0,0 +1,{} @@\n", new_content.lines().count());
+            let mut diff = format!(
+                "--- /dev/null\n+++ b/{file_path}\n@@ -0,0 +1,{} @@\n",
+                new_content.lines().count()
+            );
             for line in new_content.lines() {
                 diff.push('+');
                 diff.push_str(line);

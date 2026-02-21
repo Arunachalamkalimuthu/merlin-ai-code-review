@@ -58,7 +58,9 @@ pub struct CodeTriageClient {
 
 impl CodeTriageClient {
     pub fn new() -> Self {
-        Self { client: reqwest::Client::new() }
+        Self {
+            client: reqwest::Client::new(),
+        }
     }
 
     /// Check if a repo is registered on CodeTriage.
@@ -82,10 +84,14 @@ impl CodeTriageClient {
 
         if !resp.status().is_success() {
             let status = resp.status();
-            return Err(MerlinError::Platform(format!("CodeTriage API error {status}")));
+            return Err(MerlinError::Platform(format!(
+                "CodeTriage API error {status}"
+            )));
         }
 
-        resp.json().await.map_err(|e| MerlinError::Platform(format!("CodeTriage parse error: {e}")))
+        resp.json()
+            .await
+            .map_err(|e| MerlinError::Platform(format!("CodeTriage parse error: {e}")))
     }
 
     /// Fetch open issues from CodeTriage (paginated, max `limit`).
@@ -99,9 +105,7 @@ impl CodeTriageClient {
         let mut page = 1u32;
 
         while all_issues.len() < limit {
-            let url = format!(
-                "{CODETRIAGE_BASE}/{owner}/{repo}/issues.json?page={page}"
-            );
+            let url = format!("{CODETRIAGE_BASE}/{owner}/{repo}/issues.json?page={page}");
             debug!("Fetching CodeTriage issues page {page}");
 
             let resp = self
@@ -147,7 +151,9 @@ impl CodeTriageClient {
             .into_iter()
             .filter(|i| {
                 i.title.to_lowercase().contains(&query_lower)
-                    || i.labels.iter().any(|l| l.name.to_lowercase().contains(&query_lower))
+                    || i.labels
+                        .iter()
+                        .any(|l| l.name.to_lowercase().contains(&query_lower))
             })
             .take(limit)
             .collect();
@@ -156,11 +162,7 @@ impl CodeTriageClient {
     }
 
     /// Format CodeTriage issues as a Markdown table.
-    pub fn format_issues_table(
-        issues: &[CodeTriageIssue],
-        owner: &str,
-        repo: &str,
-    ) -> String {
+    pub fn format_issues_table(issues: &[CodeTriageIssue], owner: &str, repo: &str) -> String {
         if issues.is_empty() {
             return format!(
                 "No matching open issues found on [CodeTriage](https://www.codetriage.com/{owner}/{repo}).\n"
@@ -174,7 +176,12 @@ impl CodeTriageClient {
             let labels = if issue.labels.is_empty() {
                 "—".to_string()
             } else {
-                issue.labels.iter().map(|l| format!("`{}`", l.name)).collect::<Vec<_>>().join(", ")
+                issue
+                    .labels
+                    .iter()
+                    .map(|l| format!("`{}`", l.name))
+                    .collect::<Vec<_>>()
+                    .join(", ")
             };
             out.push_str(&format!(
                 "| [#{}]({gh}) | {title} | {labels} | [View](https://www.codetriage.com/{owner}/{repo}/issues/{num}) |\n",
@@ -212,7 +219,10 @@ mod tests {
     #[test]
     fn test_parse_github_repo() {
         let result = CodeTriageClient::parse_github_repo("octocat/Hello-World");
-        assert_eq!(result, Some(("octocat".to_string(), "Hello-World".to_string())));
+        assert_eq!(
+            result,
+            Some(("octocat".to_string(), "Hello-World".to_string()))
+        );
     }
 
     #[test]

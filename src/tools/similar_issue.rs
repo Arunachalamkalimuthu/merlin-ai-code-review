@@ -69,8 +69,7 @@ impl MerlinTool for SimilarIssueTool {
             .trim_end_matches("```")
             .trim();
 
-        let similar: Vec<SimilarityResult> =
-            serde_json::from_str(cleaned).unwrap_or_default();
+        let similar: Vec<SimilarityResult> = serde_json::from_str(cleaned).unwrap_or_default();
 
         if similar.is_empty() {
             return Ok("## Merlin: Similar Issues\n\nNo closely related issues found.".to_string());

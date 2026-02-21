@@ -43,7 +43,11 @@ pub struct OpenAiProvider {
 impl OpenAiProvider {
     /// Create a new provider.
     pub fn new(api_key: String, config: AiConfig) -> Self {
-        Self { api_key, config, client: reqwest::Client::new() }
+        Self {
+            api_key,
+            config,
+            client: reqwest::Client::new(),
+        }
     }
 }
 
@@ -91,10 +95,18 @@ impl AiProvider for OpenAiProvider {
             max_tokens: self.config.max_tokens,
             temperature: self.config.temperature,
             messages: vec![
-                ChatMessage { role: "system".to_string(), content: system.to_string() },
-                ChatMessage { role: "user".to_string(), content: user.to_string() },
+                ChatMessage {
+                    role: "system".to_string(),
+                    content: system.to_string(),
+                },
+                ChatMessage {
+                    role: "user".to_string(),
+                    content: user.to_string(),
+                },
             ],
-            response_format: ResponseFormat { format_type: "text" },
+            response_format: ResponseFormat {
+                format_type: "text",
+            },
         };
 
         let response = self
@@ -108,7 +120,9 @@ impl AiProvider for OpenAiProvider {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(MerlinError::AiProvider(format!("OpenAI API {status}: {body}")));
+            return Err(MerlinError::AiProvider(format!(
+                "OpenAI API {status}: {body}"
+            )));
         }
 
         let api_response: OpenAiResponse = response.json().await?;
@@ -131,10 +145,15 @@ impl AiProvider for OpenAiProvider {
                     role: "system".to_string(),
                     content: system_prompt(&self.config.review_focus()),
                 },
-                ChatMessage { role: "user".to_string(), content: user_content },
+                ChatMessage {
+                    role: "user".to_string(),
+                    content: user_content,
+                },
             ],
             // json_object mode: model must output valid JSON (may still wrap array)
-            response_format: ResponseFormat { format_type: "json_object" },
+            response_format: ResponseFormat {
+                format_type: "json_object",
+            },
         };
 
         debug!(file = %ctx.file, "Sending review request to OpenAI");
@@ -150,7 +169,9 @@ impl AiProvider for OpenAiProvider {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(MerlinError::AiProvider(format!("OpenAI API {status}: {body}")));
+            return Err(MerlinError::AiProvider(format!(
+                "OpenAI API {status}: {body}"
+            )));
         }
 
         let api_response: OpenAiResponse = response.json().await?;

@@ -128,8 +128,14 @@ index 000..111 100644
     assert!(!files.is_empty());
 
     let text = files[0].diff_text();
-    assert!(text.contains("println"), "diff_text should contain added lines");
-    assert!(text.contains("existing"), "diff_text should contain context lines");
+    assert!(
+        text.contains("println"),
+        "diff_text should contain added lines"
+    );
+    assert!(
+        text.contains("existing"),
+        "diff_text should contain context lines"
+    );
 }
 
 // ── Path extraction ───────────────────────────────────────────────────────────
