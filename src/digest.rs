@@ -1,4 +1,16 @@
-//! PR Digest — token-aware compression, hunk prioritization, and PR status detection.
+//! PR digest: token budgeting, file prioritisation, size labelling, and complexity scoring.
+//!
+//! This module provides three complementary capabilities:
+//!
+//! - **Token budgeting** — [`prioritize_diffs`] ranks files by security sensitivity
+//!   and drops the least important ones when the total token estimate would exceed
+//!   [`DEFAULT_TOKEN_BUDGET`], keeping AI costs predictable.
+//! - **PR status** — [`build_pr_status`] combines raw [`crate::platform::PrInfo`]
+//!   with parsed diffs to produce a [`PrStatus`] summary (size label, test coverage
+//!   signal, secrets-risk flag).
+//! - **Complexity scoring** — [`complexity_score`] returns a 0–100 composite
+//!   [`ComplexityScore`] used by [`crate::review::ReviewEngine`] to annotate the
+//!   PR summary comment.
 
 use serde::Serialize;
 
@@ -9,16 +21,24 @@ use crate::platform::PrInfo;
 const CHARS_PER_TOKEN: usize = 4;
 const DEFAULT_TOKEN_BUDGET: usize = 6_000; // conservative for 8k context models
 
-/// Priority rank for a file (lower = more important).
+/// Priority rank for a file — lower discriminant = reviewed first.
+///
+/// Assigned by [`classify_priority`] based on path heuristics.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FilePriority {
-    Critical = 0, // auth, security, crypto, secret
-    High = 1,     // core logic, API handlers
-    Medium = 2,   // tests, helpers
-    Low = 3,      // docs, lock files, generated
+    /// Auth, secrets, crypto, JWT, OAuth, RBAC paths.
+    Critical = 0,
+    /// Core application code — API handlers, business logic.
+    High = 1,
+    /// Test files, mocks, fixtures, helpers.
+    Medium = 2,
+    /// Docs, lock files, generated code, binary assets.
+    Low = 3,
 }
 
-/// Annotated diff with computed priority and token budget.
+/// A [`crate::diff::FileDiff`] annotated with its computed priority and token estimate.
+///
+/// Produced by [`prioritize_diffs`].
 #[derive(Debug, Clone)]
 pub struct PrioritizedDiff {
     pub file: FileDiff,
@@ -26,7 +46,10 @@ pub struct PrioritizedDiff {
     pub estimated_tokens: usize,
 }
 
-/// High-level PR status summary.
+/// High-level status summary for a pull request, produced by [`build_pr_status`].
+///
+/// Used by slash-command tools (e.g. `/describe`, `/triage`) that need PR
+/// metadata without calling the platform API again.
 #[derive(Debug, Clone)]
 pub struct PrStatus {
     pub title: String,
@@ -43,13 +66,22 @@ pub struct PrStatus {
     pub contributing_guidelines: Option<String>,
 }
 
+/// T-shirt size label based on total lines changed (additions + deletions).
+///
+/// Convert from a line count with [`SizeLabel::from_lines`], then get the
+/// GitHub label string with [`SizeLabel::as_str`].
 #[derive(Debug, Clone, PartialEq)]
 pub enum SizeLabel {
-    XSmall,  // ≤10 lines
-    Small,   // ≤50 lines
-    Medium,  // ≤250 lines
-    Large,   // ≤1000 lines
-    XLarge,  // >1000 lines
+    /// ≤ 10 lines changed — `"size/XS"`.
+    XSmall,
+    /// ≤ 50 lines changed — `"size/S"`.
+    Small,
+    /// ≤ 250 lines changed — `"size/M"`.
+    Medium,
+    /// ≤ 1 000 lines changed — `"size/L"`.
+    Large,
+    /// > 1 000 lines changed — `"size/XL"`.
+    XLarge,
 }
 
 impl SizeLabel {

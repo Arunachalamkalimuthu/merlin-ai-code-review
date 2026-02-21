@@ -35,6 +35,10 @@ use crate::error::{MerlinError, Result};
 
 // ── Shared data types ─────────────────────────────────────────────────────────
 
+/// Metadata for a pull request or merge request.
+///
+/// Returned by [`PlatformClient::get_pr_info`].  Fields that are unavailable
+/// on a particular platform are set to their zero values (`""`, `0`, `false`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PrInfo {
     pub number: u64,
@@ -51,6 +55,7 @@ pub struct PrInfo {
     pub deletions: u32,
 }
 
+/// A repository issue, returned by [`PlatformClient::list_issues`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Issue {
     pub number: u64,
@@ -60,6 +65,9 @@ pub struct Issue {
     pub url: String,
 }
 
+/// A multi-line code suggestion to post as a suggestion block on a PR.
+///
+/// Passed to [`PlatformClient::post_code_suggestions`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InlineCodeSuggestion {
     pub file: String,
@@ -117,7 +125,17 @@ pub trait PlatformClient: Send + Sync {
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 
-/// Auto-detect the platform from environment variables and build the client.
+/// Auto-detect the CI platform from environment variables and build a client.
+///
+/// If `cfg.platform_type` is set, that value takes precedence over
+/// auto-detection.  Otherwise the function inspects well-known CI environment
+/// variables in priority order (see the table in the module docs).
+///
+/// # Errors
+///
+/// Returns [`MerlinError::Config`] when:
+/// - No platform can be detected and none is specified in `cfg`.
+/// - The required VCS token environment variable is not set.
 pub fn build_client(cfg: &PlatformConfig) -> Result<Box<dyn PlatformClient>> {
     let platform_type = if let Some(ref t) = cfg.platform_type {
         t.clone()

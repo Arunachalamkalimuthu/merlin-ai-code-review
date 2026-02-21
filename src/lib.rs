@@ -3,7 +3,58 @@
 //! Merlin parses pull-request diffs, sends them to a configurable AI provider,
 //! and posts structured inline comments plus a summary back to the PR/MR.
 //!
-//! ## Architecture
+//! # Features
+//!
+//! - **Multi-provider AI** — Anthropic Claude, OpenAI GPT-4o, Google Gemini,
+//!   AWS Bedrock, Azure OpenAI, Ollama, Claude Code CLI
+//! - **Multi-platform VCS** — GitHub, GitLab, Bitbucket, Azure DevOps, Gitea
+//! - **Slash commands** — `/review`, `/security`, `/spec`, `/describe`, `/ask`, and more
+//! - **RAG context injection** — embed your codebase, retrieve similar code per diff chunk
+//! - **Reflect & Review** — optional second AI pass to filter false positives
+//! - **Autonomous agent** — ReAct-loop bot reachable via CLI, Slack, or Discord
+//! - **Audit log** — every action appended to a JSONL file for compliance
+//!
+//! # Quick Start
+//!
+//! ```no_run
+//! use std::sync::Arc;
+//! use merlin::config::Config;
+//! use merlin::ai::build_provider;
+//! use merlin::platform::build_client;
+//! use merlin::review::ReviewEngine;
+//!
+//! # async fn run() -> merlin::error::Result<()> {
+//! let cfg = Config::load_default()?;
+//! let ai  = Arc::from(build_provider(&cfg.ai)?);
+//! let platform = Arc::from(build_client(&cfg.platform)?);
+//! let engine = ReviewEngine::new(ai, platform, cfg.review.clone());
+//! let comments = engine.run().await?;
+//! println!("Posted {} comments", comments.len());
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! For local diff review without a live CI environment:
+//!
+//! ```no_run
+//! use std::sync::Arc;
+//! use merlin::config::Config;
+//! use merlin::ai::build_provider;
+//! use merlin::platform::NoOpPlatform;
+//! use merlin::review::ReviewEngine;
+//!
+//! # async fn run() -> merlin::error::Result<()> {
+//! let cfg     = Config::load_default()?;
+//! let ai      = Arc::from(build_provider(&cfg.ai)?);
+//! let platform = Arc::new(NoOpPlatform);
+//! let engine  = ReviewEngine::new(ai, platform, cfg.review.clone());
+//! let diff    = std::fs::read_to_string("my.diff")?;
+//! let comments = engine.run_local(&diff).await?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Architecture
 //!
 //! ```text
 //! CLI (clap)
@@ -20,7 +71,7 @@
 //!         └── AgentChannel    — CLI REPL / Slack / Discord
 //! ```
 //!
-//! ## Module overview
+//! # Module overview
 //!
 //! | Module | Purpose |
 //! |--------|---------|
