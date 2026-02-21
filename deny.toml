@@ -16,20 +16,21 @@ version = 2
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 
-# Unmaintained crates are warned, not denied (too common in the ecosystem)
-unmaintained = "warn"
-
-# Crates marked as unsound get a hard deny
-unsound = "deny"
+# Skip unmaintained checks — too common in the ecosystem to block CI
+unmaintained = "none"
 
 # Known yanked versions are always denied
 yanked = "deny"
+
+# Add advisory IDs here to ignore specific known issues
+ignore = []
 
 # ── Licences ──────────────────────────────────────────────────────────────────
 [licenses]
 version = 2
 
-# Only allow these licences in the dependency tree
+# Only allow these licences in the dependency tree.
+# Any licence not listed here (including undeclared) is denied by default.
 allow = [
     "MIT",
     "Apache-2.0",
@@ -38,27 +39,12 @@ allow = [
     "BSD-3-Clause",
     "ISC",
     "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "CDLA-Permissive-2.0",
     "CC0-1.0",
     "Zlib",
     "OpenSSL",
 ]
-
-# Reject any dependency that doesn't declare a licence
-unlicensed = "deny"
-
-# Copyleft licences are not compatible with MIT distribution
-deny = [
-    "GPL-2.0",
-    "GPL-3.0",
-    "AGPL-1.0",
-    "AGPL-3.0",
-    "LGPL-2.0",
-    "LGPL-2.1",
-    "LGPL-3.0",
-]
-
-# Some crates dual-licence; prefer the first match above
-exceptions = []
 
 # ── Bans ─────────────────────────────────────────────────────────────────────
 [bans]
