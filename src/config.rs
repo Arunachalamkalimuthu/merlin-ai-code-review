@@ -259,6 +259,22 @@ pub struct SnykConfig {
 
 // ── RAG config ─────────────────────────────────────────────────────────────────
 
+/// Which embedding backend to use for RAG.
+///
+/// | Value    | Needs                           | Best for               |
+/// |----------|---------------------------------|------------------------|
+/// | `ollama` | `ollama serve` + pulled model   | Local dev (free)       |
+/// | `openai` | `OPENAI_API_KEY` env var        | CI/CD (any runner)     |
+#[derive(Debug, Clone, Deserialize, Serialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum EmbedderType {
+    /// Local Ollama instance (default — zero cloud dependency).
+    #[default]
+    Ollama,
+    /// OpenAI Embeddings API (`text-embedding-3-small` by default).
+    Openai,
+}
+
 /// Which vector store backend to use for RAG.
 #[derive(Debug, Clone, Deserialize, Serialize, Default, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -283,6 +299,10 @@ pub struct RagConfig {
     /// Enable RAG augmentation during code review and agent calls.
     #[serde(default)]
     pub enabled: bool,
+
+    /// Embedding backend: `"ollama"` (local, default) or `"openai"` (CI-friendly).
+    #[serde(default)]
+    pub embedder: EmbedderType,
 
     /// Vector store backend.
     #[serde(default)]
@@ -358,6 +378,7 @@ impl Default for RagConfig {
     fn default() -> Self {
         RagConfig {
             enabled: false,
+            embedder: EmbedderType::default(),
             store: VectorStoreType::default(),
             collection: default_rag_collection(),
             embed_model: default_embed_model(),

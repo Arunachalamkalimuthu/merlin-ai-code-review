@@ -1,7 +1,8 @@
 name: Merlin AI Code Review
 # Copy this file to your own repo's .github/workflows/ directory.
-# Set the following repository secrets:
-#   ANTHROPIC_API_KEY  — your Anthropic API key (or OPENAI_API_KEY for GPT-4o)
+# Required secrets:
+#   ANTHROPIC_API_KEY  — AI review (or OPENAI_API_KEY for GPT-4o)
+#   OPENAI_API_KEY     — RAG embeddings (optional; omit to skip RAG indexing)
 
 on:
   pull_request:
@@ -78,10 +79,35 @@ jobs:
             https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest/download/install.sh \
             | MERLIN_INSTALL_DIR=~/.local/bin sh
 
+      # ── RAG: cache the code index between runs ─────────────────────────────
+      # The index is rebuilt only when source files change.
+      # Remove this block entirely if you don't need context-aware reviews.
+      - name: Cache RAG index
+        if: secrets.OPENAI_API_KEY != ''
+        uses: actions/cache@v4
+        with:
+          path: merlin-rag.jsonl
+          key: merlin-rag-${{ hashFiles('src/**', 'lib/**', '*.go', '*.py') }}
+          restore-keys: merlin-rag-
+
+      - name: Build RAG index (on cache miss)
+        if: secrets.OPENAI_API_KEY != ''
+        run: |
+          if [ ! -f merlin-rag.jsonl ]; then
+            echo "No cached index found — indexing codebase with OpenAI embeddings..."
+            ~/.local/bin/merlin rag index .
+          else
+            echo "Using cached RAG index."
+          fi
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        # merlin.toml must have: [rag] enabled = true  embedder = "openai"
+
+      # ── AI code review ─────────────────────────────────────────────────────
       - name: Run code review
         run: ~/.local/bin/merlin review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Uncomment for OpenAI instead:
+          # Uncomment to use OpenAI for review instead of Anthropic:
           # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
