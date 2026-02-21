@@ -29,6 +29,7 @@ pub fn builtin_tools() -> Vec<Arc<dyn AgentTool>> {
         ("approve",          "Approve the PR if no blocking issues are found."),
         ("triage",           "Find similar open issues on CodeTriage for the changed packages."),
         ("similar_issue",    "Find issues in the same repo that are similar to this PR."),
+        ("spec",             "Generate a comprehensive technical specification and update the PR description."),
     ];
 
     let mut tools: Vec<Arc<dyn AgentTool>> = slash_no_arg

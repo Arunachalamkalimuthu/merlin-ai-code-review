@@ -16,6 +16,7 @@ pub mod link_linear;
 pub mod security;
 pub mod similar_issue;
 pub mod snyk;
+pub mod spec;
 pub mod test_gen;
 pub mod triage;
 
@@ -71,15 +72,16 @@ pub fn route_command(command: &str) -> Result<Box<dyn MerlinTool>> {
         "/link_jira" => Ok(Box::new(link_jira::LinkJiraTool)),
         "/link_linear" => Ok(Box::new(link_linear::LinkLinearTool)),
         "/snyk" => Ok(Box::new(snyk::SnykTool)),
+        "/spec" => Ok(Box::new(spec::SpecTool)),
         "/triage" => Ok(Box::new(triage::TriageTool)),
         other => Err(MerlinError::Other(format!("Unknown command: {other}"))),
     }
 }
 
 /// Extract slash command + optional arg from a comment body.
-/// Matches `@ferret /command args` or just `/command args`.
+/// Matches `@merlin /command args` or just `/command args`.
 pub fn parse_command(body: &str) -> Option<(String, Option<String>)> {
-    let re = regex::Regex::new(r"(?i)(?:@ferret\s+)?(/\w+)(.*)").ok()?;
+    let re = regex::Regex::new(r"(?i)(?:@merlin\s+)?(/\w+)(.*)").ok()?;
     let caps = re.captures(body)?;
     let command = caps.get(1)?.as_str().to_lowercase();
     let arg = caps
@@ -102,14 +104,14 @@ mod tests {
 
     #[test]
     fn test_parse_command_with_bot_mention() {
-        let (cmd, arg) = parse_command("@ferret /ask Is this thread-safe?").unwrap();
+        let (cmd, arg) = parse_command("@merlin /ask Is this thread-safe?").unwrap();
         assert_eq!(cmd, "/ask");
         assert_eq!(arg.unwrap(), "Is this thread-safe?");
     }
 
     #[test]
     fn test_parse_command_case_insensitive() {
-        let (cmd, _) = parse_command("@Ferret /DESCRIBE").unwrap();
+        let (cmd, _) = parse_command("@Merlin /DESCRIBE").unwrap();
         assert_eq!(cmd, "/describe");
     }
 
@@ -124,7 +126,7 @@ mod tests {
             "/review", "/describe", "/ask", "/improve",
             "/generate_labels", "/update_changelog", "/add_doc", "/similar_issue",
             "/test", "/explain", "/security", "/approve", "/commit_message", "/docs",
-            "/coverage", "/link_jira", "/link_linear", "/snyk", "/triage",
+            "/coverage", "/link_jira", "/link_linear", "/snyk", "/spec", "/triage",
         ] {
             assert!(route_command(cmd).is_ok(), "Failed to route: {cmd}");
         }
