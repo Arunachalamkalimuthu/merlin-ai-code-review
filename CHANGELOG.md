@@ -10,6 +10,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ---
 
+## [0.1.6] — 2026-02-21
+
+### Fixed
+
+- **Release pipeline** — pinned `x86_64-apple-darwin` build to `macos-13` runner;
+  `macos-latest` is now ARM (M-series) and cannot natively compile Intel binaries
+- **Workflow validation** — removed invalid YAML literal block scalar (`|`) from
+  `review.yml` job-level `if:` expression, which caused the workflow to fail
+  validation on every push with zero jobs run
+- **Cargo.lock** — regenerated after version bumps to fix `cargo test --locked`
+- **Rustdoc** — fixed all broken intra-doc links, private-item links, and bare URLs
+- **Spell-check** — corrected three misspellings flagged by `typos`
+- **`cargo deny`** — migrated `deny.toml` to v2 schema; added `Unicode-3.0` and
+  `CDLA-Permissive-2.0` to license allowlist
+- **`cargo fmt`** — formatted entire codebase (68 files)
+- **Clippy** — fixed 8 lint errors caught by `--all-targets --all-features`
+- **Docs** — removed `docs.yml` deploy pipeline (moved to separate repo)
+- **Folder** — renamed local folder to `merlin-ai-code-review`
+- **License** — added `LICENSE` and `LICENSE.md` (MIT)
+- **Roadmap** — added `ROADMAP.md` with milestones through v1.0
+
+---
+
 ## [0.1.5] — 2026-02-21
 
 ### Fixed
