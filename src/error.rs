@@ -32,7 +32,7 @@ pub enum MerlinError {
     #[error("Diff parse error: {0}")]
     DiffParse(String),
 
-    /// An AI backend returned an error or an unparseable response.
+    /// An AI backend returned an error or an unparsable response.
     ///
     /// Raised by [`crate::ai::AiProvider`] implementations when the upstream
     /// API call fails or returns JSON that cannot be deserialised into

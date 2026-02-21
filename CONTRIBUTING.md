@@ -309,7 +309,7 @@ merlin/
 | `RagPipeline` | `src/rag/mod.rs` | Ties embedder + store + config; `retrieve()` + `index_documents()` |
 | `AgentTool` | `src/agent/mod.rs` | Async trait: `definition()` + `call(params, ctx)` |
 | `AgentChannel` | `src/agent/mod.rs` | Async trait: `recv()` + `send()` + `send_to()` |
-| `AgentContext` | `src/agent/mod.rs` | Clonable context shared across agent tool calls (AI + platform + config) |
+| `AgentContext` | `src/agent/mod.rs` | Cloneable context shared across agent tool calls (AI + platform + config) |
 | `AgentRuntime` | `src/agent/runtime.rs` | Drives the ReAct loop and channel dispatch |
 | `AgentMemory` | `src/agent/memory.rs` | Ring-buffer conversation history with optional persistence |
 
