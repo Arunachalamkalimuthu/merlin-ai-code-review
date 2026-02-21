@@ -49,9 +49,8 @@ jobs:
 
 ```yaml
 merlin-review:
-  image: ubuntu:22.04
+  image: ghcr.io/arunachalamkalimuthu/merlin-ai-code-review:latest
   script:
-    - curl -fsSL .../install.sh | sh
     - merlin review
   variables:
     GITLAB_TOKEN: $CI_JOB_TOKEN
@@ -60,7 +59,7 @@ merlin-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 ```
 
-See [`.gitlab-ci.yml.example`](.gitlab-ci.yml.example) for the full example with caching.
+See [`.gitlab-ci.yml.example`](.gitlab-ci.yml.example) for the full example including an install-script alternative (no Docker required).
 
 ---
 
