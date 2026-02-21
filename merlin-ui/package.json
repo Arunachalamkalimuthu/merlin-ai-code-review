@@ -1,0 +1,32 @@
+{
+  "name": "merlin-ui",
+  "version": "0.1.2",
+  "description": "Beautiful Ink-powered terminal UI for Merlin AI code review",
+  "license": "MIT",
+  "bin": {
+    "merlin-ui": "./bin/merlin-ui.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.tsx",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "execa": "^9.4.0",
+    "ink": "^5.0.1",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^6.0.0",
+    "meow": "^13.2.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "type": "module"
+}
