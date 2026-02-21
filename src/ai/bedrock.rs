@@ -170,7 +170,7 @@ fn format_utc(secs: u64) -> String {
 }
 
 fn is_leap(year: u32) -> bool {
-    year.is_multiple_of(400) || (year.is_multiple_of(4) && !year.is_multiple_of(100))
+    year % 400 == 0 || (year % 4 == 0 && year % 100 != 0)
 }
 
 // ── Bedrock request/response types ───────────────────────────────────────────

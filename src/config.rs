@@ -70,6 +70,20 @@ impl Default for AiConfig {
         }
     }
 }
+impl AiConfig {
+    /// Returns the review focus categories, defaulting to all four if not set.
+    pub fn review_focus(&self) -> Vec<String> {
+        // AiConfig doesn't own focus — that lives in ReviewConfig.
+        // Providers use this default when no ReviewConfig is available.
+        vec![
+            "bugs".to_string(),
+            "security".to_string(),
+            "style".to_string(),
+            "performance".to_string(),
+        ]
+    }
+}
+
 
 // ── Review persona ─────────────────────────────────────────────────────────────
 

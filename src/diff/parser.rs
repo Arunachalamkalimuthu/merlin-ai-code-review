@@ -1,3 +1,32 @@
+//! Unified diff parser.
+//!
+//! Parses unified diff output (as produced by `git diff`) into structured
+//! [`FileDiff`] / [`Hunk`] / [`HunkLine`] types that the rest of Merlin can
+//! work with.
+//!
+//! # Supported formats
+//!
+//! - Standard unified diff (`--- a/…`, `+++ b/…`, `@@ … @@`)
+//! - Git diffs with `a/` / `b/` path prefixes (stripped automatically)
+//! - New-file diffs (`--- /dev/null`)
+//! - Deleted-file diffs (`+++ /dev/null`)
+//! - Multi-file diffs
+//!
+//! # Limitations
+//!
+//! - Binary file markers (`Binary files … differ`) are silently skipped.
+//! - `\ No newline at end of file` lines are treated as context.
+//! - Rename detection (output of `git diff --find-renames`) is not implemented.
+//!
+//! # Example
+//!
+//! ```rust
+//! use merlin::diff::parse_diff;
+//!
+//! let diff = "--- a/src/main.rs\n+++ b/src/main.rs\n@@ -1 +1 @@\n-old\n+new\n";
+//! let files = parse_diff(diff).unwrap();
+//! assert_eq!(files[0].path(), "src/main.rs");
+//! ```
 use crate::error::{MerlinError, Result};
 
 /// A single line within a hunk with its kind and new-file line number.

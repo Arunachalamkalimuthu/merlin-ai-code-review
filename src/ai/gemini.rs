@@ -1,24 +1,38 @@
 //! Google Gemini provider (Generative Language API).
 //!
-//! Requires: `GEMINI_API_KEY` env var.
+//! Calls `generativelanguage.googleapis.com` using the `generateContent`
+//! endpoint.  The API key is passed via the `x-goog-api-key` request header
+//! (not in the URL) to prevent accidental key exposure in logs.
 //!
-//! Config:
+//! # Configuration
+//!
 //! ```toml
 //! [ai]
 //! provider = "gemini"
-//! model = "gemini-1.5-pro"   # or "gemini-1.5-flash"
+//! model    = "gemini-1.5-pro"   # or "gemini-1.5-flash"
 //! ```
+//!
+//! # Required environment variable
+//!
+//! `GEMINI_API_KEY` — obtain from <https://aistudio.google.com/>.
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
 
-use super::{system_prompt, AiProvider, ReviewComment, ReviewContext};
+use crate::ai::response::parse_review_response;
+use crate::ai::{system_prompt, AiProvider, ReviewComment, ReviewContext};
 use crate::config::AiConfig;
 use crate::error::{MerlinError, Result};
 
-const GEMINI_API_BASE: &str = "https://generativelanguage.googleapis.com/v1beta/models";
+const GEMINI_API_BASE: &str =
+    "https://generativelanguage.googleapis.com/v1beta/models";
 
+// ── Public provider struct ────────────────────────────────────────────────────
+
+/// AI provider backed by the Google Gemini Generative Language API.
+///
+/// Construct via [`crate::ai::build_provider`].
 pub struct GeminiProvider {
     api_key: String,
     config: AiConfig,
@@ -26,12 +40,21 @@ pub struct GeminiProvider {
 }
 
 impl GeminiProvider {
+    /// Create a new provider.
     pub fn new(api_key: String, config: AiConfig) -> Self {
         Self { api_key, config, client: reqwest::Client::new() }
     }
+
+    /// Build the `generateContent` endpoint URL for the configured model.
+    ///
+    /// The API key is **not** included in the URL — it is passed as the
+    /// `x-goog-api-key` request header to avoid leaking it in access logs.
+    fn endpoint_url(&self) -> String {
+        format!("{}/{}:generateContent", GEMINI_API_BASE, self.config.model)
+    }
 }
 
-// ── Gemini request/response types ─────────────────────────────────────────────
+// ── Wire types (private) ──────────────────────────────────────────────────────
 
 #[derive(Serialize)]
 struct GeminiRequest {
@@ -71,17 +94,12 @@ struct GeminiCandidate {
     content: GeminiContent,
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ── AiProvider implementation ─────────────────────────────────────────────────
 
 #[async_trait]
 impl AiProvider for GeminiProvider {
-    #[instrument(skip(self, system, user))]
+    #[instrument(skip(self, system, user), fields(model = %self.config.model))]
     async fn generate(&self, system: &str, user: &str) -> Result<String> {
-        let url = format!(
-            "{}/{}:generateContent?key={}",
-            GEMINI_API_BASE, self.config.model, self.api_key
-        );
-
         let request = GeminiRequest {
             system_instruction: Some(GeminiContent {
                 role: None,
@@ -97,14 +115,20 @@ impl AiProvider for GeminiProvider {
             },
         };
 
-        debug!("Sending request to Gemini API model: {}", self.config.model);
+        debug!(model = %self.config.model, "Sending generate request to Gemini");
 
-        let resp = self.client.post(&url).json(&request).send().await?;
+        let resp = self
+            .client
+            .post(self.endpoint_url())
+            .header("x-goog-api-key", &self.api_key)  // key in header, NOT in URL
+            .json(&request)
+            .send()
+            .await?;
 
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
-            return Err(MerlinError::AiProvider(format!("Gemini API error {status}: {body}")));
+            return Err(MerlinError::AiProvider(format!("Gemini API {status}: {body}")));
         }
 
         let result: GeminiResponse = resp.json().await?;
@@ -117,22 +141,14 @@ impl AiProvider for GeminiProvider {
             .ok_or_else(|| MerlinError::AiProvider("Empty Gemini response".to_string()))
     }
 
-    #[instrument(skip(self, ctx), fields(file = %ctx.file))]
+    #[instrument(skip(self, ctx), fields(file = %ctx.file, model = %self.config.model))]
     async fn review(&self, ctx: &ReviewContext) -> Result<Vec<ReviewComment>> {
-        let system = system_prompt(&[
-            "bugs".to_string(), "security".to_string(),
-            "style".to_string(), "performance".to_string(),
-        ]);
+        let system = system_prompt(&self.config.review_focus());
         let user = format!(
             "Review the following diff for file `{}`:\n\n```diff\n{}\n```",
             ctx.file, ctx.diff_hunk
         );
         let raw = self.generate(&system, &user).await?;
-        let cleaned = raw.trim()
-            .trim_start_matches("```json").trim_start_matches("```")
-            .trim_end_matches("```").trim();
-        serde_json::from_str(cleaned).map_err(|e| {
-            MerlinError::AiProvider(format!("Failed to parse Gemini response: {e}\nRaw: {cleaned}"))
-        })
+        parse_review_response(&raw)
     }
 }
