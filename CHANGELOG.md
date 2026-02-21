@@ -10,6 +10,37 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ---
 
+## [0.1.1] — 2026-02-21
+
+### Fixed
+
+- **Gemini API key security** — API key moved from URL query parameter to
+  `x-goog-api-key` header, preventing it from appearing in server access logs
+  and HTTP client traces
+
+### Changed
+
+- **Shared AI response parser** — extracted `src/ai/response.rs` with a single
+  `parse_review_response()` used by all 6 AI providers; handles bare arrays,
+  markdown-fenced arrays, and wrapped objects (`"comments"`, `"reviews"`,
+  `"issues"`, `"results"` keys)
+- **Pre-compiled regex** — `COMMAND_RE` in `tools/mod.rs` now compiled once at
+  startup via `OnceLock<Regex>` instead of on every PR comment event
+
+### Added
+
+- **Comprehensive rustdoc** — full `//!` module docs, `///` item docs, `# Examples`,
+  `# Errors`, and intra-doc links across all public modules following the
+  Tangram Vision Rustdoc best practices guide
+- **`INSTALLATION.md`** — step-by-step installation guide for macOS, Linux,
+  Windows, Docker, and all major CI/CD platforms with troubleshooting section
+
+### Removed
+
+- **Docusaurus website** — docs site moved to a separate repository
+
+---
+
 ## [0.1.0] — 2026-02-21
 
 Initial public release of Merlin — a self-hosted, open-source AI code review CLI.
