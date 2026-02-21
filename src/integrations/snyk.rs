@@ -15,8 +15,8 @@
 //! ```
 //!
 //! Usage:
-//!   @ferret /snyk            — scan dependencies in the PR diff
-//!   @ferret /snyk [package]  — look up a specific package
+//!   @merlin /snyk            — scan dependencies in the PR diff
+//!   @merlin /snyk [package]  — look up a specific package
 
 use serde::Deserialize;
 use tracing::{debug, warn};

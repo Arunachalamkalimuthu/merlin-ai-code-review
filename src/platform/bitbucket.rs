@@ -296,7 +296,7 @@ impl PlatformClient for BitbucketClient {
         }
         warn!("Bitbucket Cloud does not support PR labels; posting as comment");
         let text = format!(
-            "**Ferret suggested labels:** {}",
+            "**Merlin suggested labels:** {}",
             labels.iter().map(|l| format!("`{l}`")).collect::<Vec<_>>().join(", ")
         );
         self.post_summary(&text).await

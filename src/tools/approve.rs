@@ -71,7 +71,7 @@ impl MerlinTool for ApproveTool {
         };
 
         let mut out = format!(
-            "## Ferret: Approval Assessment {verdict_emoji}\n\n\
+            "## Merlin: Approval Assessment {verdict_emoji}\n\n\
              **Verdict:** {verdict} (confidence: {confidence}%)\n\n\
              **Summary:** {summary}\n\n"
         );
@@ -106,7 +106,7 @@ impl MerlinTool for ApproveTool {
             }
         }
 
-        out.push_str("*Assessed by [Merlin](https://github.com/you/ferret) 🦡*");
+        out.push_str("*Assessed by [Merlin](https://github.com/you/merlin) 🦡*");
         Ok(out)
     }
 }

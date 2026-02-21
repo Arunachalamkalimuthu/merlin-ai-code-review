@@ -34,7 +34,7 @@ cargo run -- review --help
 ## Project structure
 
 ```
-ferret/
+merlin/
 ├── src/
 │   ├── main.rs           # CLI entrypoint (clap)
 │   ├── lib.rs            # Library root, module declarations

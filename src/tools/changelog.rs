@@ -89,8 +89,8 @@ impl MerlinTool for ChangelogTool {
             .await?;
 
         Ok(format!(
-            "## Ferret: Changelog Updated\n\nPrepended entry to `{CHANGELOG_PATH}`:\n\n{entry_body}\n\n\
-             *Updated by [Merlin](https://github.com/you/ferret) 🦡*"
+            "## Merlin: Changelog Updated\n\nPrepended entry to `{CHANGELOG_PATH}`:\n\n{entry_body}\n\n\
+             *Updated by [Merlin](https://github.com/you/merlin) 🦡*"
         ))
     }
 }

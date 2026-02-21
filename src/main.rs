@@ -26,14 +26,14 @@ use merlin::webhook::{WebhookState, serve};
                   (Claude, OpenAI, or Claude Code CLI), and posts inline review comments,\n\
                   code suggestions, labels, and a summary back to the PR/MR.\n\n\
                   Trigger commands by commenting on a PR:\n\
-                    @ferret /review\n\
-                    @ferret /describe\n\
-                    @ferret /ask <question>\n\
-                    @ferret /improve\n\
-                    @ferret /generate_labels\n\
-                    @ferret /update_changelog\n\
-                    @ferret /add_doc\n\
-                    @ferret /similar_issue"
+                    @merlin /review\n\
+                    @merlin /describe\n\
+                    @merlin /ask <question>\n\
+                    @merlin /improve\n\
+                    @merlin /generate_labels\n\
+                    @merlin /update_changelog\n\
+                    @merlin /add_doc\n\
+                    @merlin /similar_issue"
 )]
 struct Cli {
     /// Path to merlin.toml config file
@@ -57,7 +57,7 @@ enum Commands {
         output: OutputFormat,
     },
 
-    /// Run a specific slash command (e.g., `ferret run /describe`)
+    /// Run a specific slash command (e.g., `merlin run /describe`)
     Run {
         /// Slash command to execute: /review, /describe, /ask, /improve,
         /// /generate_labels, /update_changelog, /add_doc, /similar_issue
@@ -73,7 +73,7 @@ enum Commands {
         output: OutputFormat,
     },
 
-    /// Start the webhook server for bot mode (@ferret mention in PR comments)
+    /// Start the webhook server for bot mode (@merlin mention in PR comments)
     Webhook {
         /// Port to listen on
         #[arg(long, default_value = "8080")]
@@ -159,7 +159,7 @@ async fn run() -> Result<()> {
     let config = Config::load(&cli.config)?;
 
     match cli.command {
-        // ── ferret review ────────────────────────────────────────────────────
+        // ── merlin review ────────────────────────────────────────────────────
         Commands::Review { diff, output } => {
             let ai = Arc::from(build_provider(&config.ai)?);
 
@@ -181,7 +181,7 @@ async fn run() -> Result<()> {
             }
         }
 
-        // ── ferret run /command ──────────────────────────────────────────────
+        // ── merlin run /command ──────────────────────────────────────────────
         Commands::Run { command, args, output } => {
             let ai = Arc::from(build_provider(&config.ai)?);
             let platform = Arc::from(build_client(&config.platform)?);
@@ -201,7 +201,7 @@ async fn run() -> Result<()> {
             }
         }
 
-        // ── ferret webhook ───────────────────────────────────────────────────
+        // ── merlin webhook ───────────────────────────────────────────────────
         Commands::Webhook { port } => {
             let ai = Arc::from(build_provider(&config.ai)?);
 
@@ -216,7 +216,7 @@ async fn run() -> Result<()> {
             serve(state, port).await;
         }
 
-        // ── ferret agent ─────────────────────────────────────────────────────
+        // ── merlin agent ─────────────────────────────────────────────────────
         Commands::Agent { channel, port, task } => {
             let ai = std::sync::Arc::from(build_provider(&config.ai)?);
 
@@ -260,7 +260,7 @@ async fn run() -> Result<()> {
             }
         }
 
-        // ── ferret rag ───────────────────────────────────────────────────────
+        // ── merlin rag ───────────────────────────────────────────────────────
         Commands::Rag { action } => {
             if !config.rag.enabled {
                 eprintln!("RAG is disabled. Set `[rag] enabled = true` in merlin.toml.");
@@ -296,7 +296,7 @@ async fn run() -> Result<()> {
             }
         }
 
-        // ── ferret parse-diff ────────────────────────────────────────────────
+        // ── merlin parse-diff ────────────────────────────────────────────────
         Commands::ParseDiff { diff } => {
             let raw = std::fs::read_to_string(&diff)?;
             let files = parse_diff(&raw)?;

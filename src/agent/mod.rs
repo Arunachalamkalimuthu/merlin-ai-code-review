@@ -1,20 +1,20 @@
 //! Agentic framework — autonomous multi-step AI agent with tool use.
 //!
-//! Architecture (ZeroClaw-inspired, Ferret-native):
+//! Architecture (ZeroClaw-inspired, Merlin-native):
 //!   Channel → AgentRuntime → [ReAct loop] → Tools → Platform/Integrations
 //!
 //! Features:
 //!   - Swappable channels: CLI REPL, Slack bot, Discord bot
-//!   - Swappable AI providers: all Ferret providers (Anthropic, OpenAI, Gemini, ...)
-//!   - Built-in tool registry: all Ferret slash commands + platform actions
+//!   - Swappable AI providers: all Merlin providers (Anthropic, OpenAI, Gemini, ...)
+//!   - Built-in tool registry: all Merlin slash commands + platform actions
 //!   - Conversation memory: in-memory (short-term) + JSONL file (long-term)
 //!   - ReAct loop: Reason → Act (tool call) → Observe (result) → Repeat
 //!
 //! Usage:
-//!   ferret agent                       — interactive CLI REPL
-//!   ferret agent --channel slack       — Slack bot mode
-//!   ferret agent --channel discord     — Discord bot mode
-//!   ferret agent run "Review PR #42 and link any Jira tickets"
+//!   merlin agent                       — interactive CLI REPL
+//!   merlin agent --channel slack       — Slack bot mode
+//!   merlin agent --channel discord     — Discord bot mode
+//!   merlin agent run "Review PR #42 and link any Jira tickets"
 
 pub mod channels;
 pub mod memory;

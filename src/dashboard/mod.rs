@@ -95,7 +95,7 @@ async fn dashboard_html(
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Ferret Dashboard</title>
+  <title>Merlin Dashboard</title>
   <style>
     body {{ font-family: system-ui, sans-serif; margin: 2rem; background: #0d1117; color: #e6edf3; }}
     h1 {{ display: flex; align-items: center; gap: .5rem; font-size: 1.6rem; }}
@@ -112,7 +112,7 @@ async fn dashboard_html(
   </style>
 </head>
 <body>
-  <h1>🦡 Ferret Dashboard <span class="badge">v{version}</span></h1>
+  <h1>🦡 Merlin Dashboard <span class="badge">v{version}</span></h1>
   <p>Showing the last 100 events. Refresh to update.</p>
 
   <table>
@@ -133,12 +133,12 @@ async fn dashboard_html(
 
   <footer>
     <a href="/dashboard/events">JSON API</a> · <a href="/health">Health</a> ·
-    <a href="https://github.com/you/ferret" target="_blank">GitHub</a>
+    <a href="https://github.com/you/merlin" target="_blank">GitHub</a>
   </footer>
 </body>
 </html>"#,
         rows_or_empty = if rows.is_empty() {
-            "<tr><td colspan=\"6\" class=\"empty\">No events yet. Run <code>ferret review</code> or use a slash command.</td></tr>".to_string()
+            "<tr><td colspan=\"6\" class=\"empty\">No events yet. Run <code>merlin review</code> or use a slash command.</td></tr>".to_string()
         } else {
             rows
         }
@@ -158,7 +158,7 @@ pub fn from_audit_config(cfg: &AuditConfig) -> DashboardState {
 /// Build the combined dashboard + admin router.
 pub fn full_router(cfg: &AuditConfig) -> Router {
     let dashboard_state = from_audit_config(cfg);
-    let admin_state = admin::SharedAdminState::new("ferret-admin.json".to_string());
+    let admin_state = admin::SharedAdminState::new("merlin-admin.json".to_string());
 
     router(dashboard_state).merge(admin::admin_router(admin_state))
 }

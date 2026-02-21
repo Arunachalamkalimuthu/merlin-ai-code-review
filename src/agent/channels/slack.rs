@@ -12,7 +12,7 @@
 //!    - `SLACK_SIGNING_SECRET`  — Signing secret (for optional request verification)
 //!
 //! ## Usage
-//!   ferret agent --channel slack --port 8090
+//!   merlin agent --channel slack --port 8090
 
 use std::sync::Arc;
 

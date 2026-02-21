@@ -1,6 +1,6 @@
 //! Claude Code authorization mode.
 //!
-//! When `auth = "claude-code"` is set in [ai] config, Ferret delegates API calls
+//! When `auth = "claude-code"` is set in [ai] config, Merlin delegates API calls
 //! through the `claude` CLI instead of using a raw API key. This lets organizations
 //! use their existing Claude Code subscription without managing separate API keys.
 //!
@@ -8,7 +8,7 @@
 //!   https://claude.ai/claude-code
 //!
 //! Flow:
-//!   1. Ferret writes the prompt to a temp file
+//!   1. Merlin writes the prompt to a temp file
 //!   2. Invokes: `claude -p <prompt_file> --output-format json`
 //!   3. Parses the JSON stdout
 //!
@@ -85,7 +85,7 @@ impl ClaudeCodeProvider {
         let output = Command::new("claude")
             .args([
                 "-p",
-                tmp.path().to_str().unwrap_or("/tmp/ferret_prompt"),
+                tmp.path().to_str().unwrap_or("/tmp/merlin_prompt"),
                 "--output-format",
                 "json",
                 "--model",

@@ -215,7 +215,7 @@ fn default_audit_enabled() -> bool {
 }
 
 fn default_audit_path() -> String {
-    "ferret-audit.jsonl".to_string()
+    "merlin-audit.jsonl".to_string()
 }
 
 impl Default for AuditConfig {
@@ -620,7 +620,7 @@ project_key = "PROJ"
 
     #[test]
     fn test_load_from_missing_file() {
-        let result = Config::load(Path::new("/tmp/ferret_nonexistent_xyz.toml"));
+        let result = Config::load(Path::new("/tmp/merlin_nonexistent_xyz.toml"));
         assert!(result.is_ok());
     }
 

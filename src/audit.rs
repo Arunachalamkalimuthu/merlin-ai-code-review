@@ -1,6 +1,6 @@
-//! Audit log — records every Ferret action to a JSONL file.
+//! Audit log — records every Merlin action to a JSONL file.
 //!
-//! Each event is appended as a JSON line to `ferret-audit.jsonl` (configurable).
+//! Each event is appended as a JSON line to `merlin-audit.jsonl` (configurable).
 //! The log can be read by the `/dashboard` endpoint or exported for analysis.
 
 use serde::{Deserialize, Serialize};

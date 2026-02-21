@@ -54,8 +54,8 @@ impl MerlinTool for ExplainTool {
         let explanation = ctx.ai.generate(system, &user).await?;
 
         Ok(format!(
-            "## Ferret: PR Explanation\n\n{explanation}\n\n\
-             *Explained by [Merlin](https://github.com/you/ferret) 🦡*"
+            "## Merlin: PR Explanation\n\n{explanation}\n\n\
+             *Explained by [Merlin](https://github.com/you/merlin) 🦡*"
         ))
     }
 }

@@ -87,9 +87,9 @@ impl MerlinTool for ImproveTool {
 
         let count = all_suggestions.len();
         Ok(format!(
-            "## Ferret: Code Improvements\n\nPosted **{count}** inline suggestion(s). \
+            "## Merlin: Code Improvements\n\nPosted **{count}** inline suggestion(s). \
              Review and apply them directly from the diff view.\n\n\
-             *Reviewed by [Merlin](https://github.com/you/ferret) 🦡*"
+             *Reviewed by [Merlin](https://github.com/you/merlin) 🦡*"
         ))
     }
 }

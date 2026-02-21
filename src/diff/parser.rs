@@ -244,7 +244,7 @@ index abc1234..def5678 100644
 @@ -1,7 +1,9 @@ fn main() {
  fn main() {
 -    println!("hello");
-+    println!("Hello, Ferret!");
++    println!("Hello, Merlin!");
 +    let x = 42;
 +    println!("{}", x);
  }
@@ -292,7 +292,7 @@ index abc1234..def5678 100644
         let files = parse_diff(SAMPLE_DIFF).unwrap();
         let text = files[0].diff_text();
         assert!(text.contains("+++ src/main.rs"));
-        assert!(text.contains("+    println!(\"Hello, Ferret!\");"));
+        assert!(text.contains("+    println!(\"Hello, Merlin!\");"));
     }
 
     #[test]

@@ -257,7 +257,7 @@ pub fn build_summary(
 
     if comments.is_empty() {
         out.push_str("No issues found. Great work! ✅\n\n");
-        out.push_str("---\n*Reviewed by [Merlin](https://github.com/you/ferret) 🦡*\n");
+        out.push_str("---\n*Reviewed by [Merlin](https://github.com/you/merlin) 🦡*\n");
         return out;
     }
 
@@ -290,7 +290,7 @@ pub fn build_summary(
         ));
     }
 
-    out.push_str("\n---\n*Reviewed by [Merlin](https://github.com/you/ferret) 🦡*\n");
+    out.push_str("\n---\n*Reviewed by [Merlin](https://github.com/you/merlin) 🦡*\n");
     out
 }
 

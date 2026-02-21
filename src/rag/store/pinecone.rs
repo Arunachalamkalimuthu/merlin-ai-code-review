@@ -104,7 +104,7 @@ struct StatsResponse {
 impl VectorStore for PineconeStore {
     async fn ensure_collection(&self, _collection: &str, _dimension: usize) -> Result<()> {
         // Pinecone indexes are created via the console or control-plane API.
-        // Ferret uses existing indexes; `collection` maps to the namespace.
+        // Merlin uses existing indexes; `collection` maps to the namespace.
         Ok(())
     }
 

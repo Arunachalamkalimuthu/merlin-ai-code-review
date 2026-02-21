@@ -95,7 +95,7 @@ impl JiraClient {
     }
 
     fn auth_header(&self) -> Result<String> {
-        let email = self.config.user_email.as_deref().unwrap_or("ferret-bot");
+        let email = self.config.user_email.as_deref().unwrap_or("merlin-bot");
         let raw = format!("{email}:{}", self.api_token);
         Ok(format!("Basic {}", B64.encode(raw.as_bytes())))
     }

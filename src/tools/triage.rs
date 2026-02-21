@@ -4,8 +4,8 @@
 //! helping maintainers link PRs to open issues and prioritize their backlog.
 //!
 //! Usage:
-//!   @ferret /triage             — auto-detect repo from CI env
-//!   @ferret /triage owner/repo  — specify repo explicitly
+//!   @merlin /triage             — auto-detect repo from CI env
+//!   @merlin /triage owner/repo  — specify repo explicitly
 
 use async_trait::async_trait;
 use tracing::info;
@@ -32,9 +32,9 @@ impl MerlinTool for TriageTool {
             match CodeTriageClient::parse_github_repo(arg) {
                 Some(pair) => pair,
                 None => {
-                    return Ok("## Ferret: CodeTriage\n\n\
+                    return Ok("## Merlin: CodeTriage\n\n\
                                ⚠️ Invalid repository format. Use `owner/repo`.\n\n\
-                               *[Merlin](https://github.com/you/ferret) 🦡*"
+                               *[Merlin](https://github.com/you/merlin) 🦡*"
                         .to_string())
                 }
             }
@@ -45,9 +45,9 @@ impl MerlinTool for TriageTool {
             match CodeTriageClient::parse_github_repo(&github_repo) {
                 Some(pair) => pair,
                 None => {
-                    return Ok("## Ferret: CodeTriage\n\n\
+                    return Ok("## Merlin: CodeTriage\n\n\
                                ⚠️ Could not detect repository. Set `GITHUB_REPOSITORY` or pass `owner/repo` as argument.\n\n\
-                               *[Merlin](https://github.com/you/ferret) 🦡*"
+                               *[Merlin](https://github.com/you/merlin) 🦡*"
                         .to_string())
                 }
             }
@@ -58,7 +58,7 @@ impl MerlinTool for TriageTool {
         // 1. Check if the repo is on CodeTriage
         let repo_info = client.get_repo(&owner, &repo).await.ok();
 
-        let mut out = "## Ferret: CodeTriage Issue Linking\n\n".to_string();
+        let mut out = "## Merlin: CodeTriage Issue Linking\n\n".to_string();
 
         if let Some(ref info) = repo_info {
             out.push_str(&format!(
@@ -112,7 +112,7 @@ impl MerlinTool for TriageTool {
         }
 
         out.push_str("\n*Powered by [CodeTriage](https://www.codetriage.com/) · \
-                      [Merlin](https://github.com/you/ferret) 🦡*");
+                      [Merlin](https://github.com/you/merlin) 🦡*");
         Ok(out)
     }
 }

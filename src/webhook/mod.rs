@@ -1,6 +1,6 @@
 //! Webhook server — receive GitHub/GitLab PR comment events and dispatch slash commands.
 //!
-//! Start with: `ferret webhook --port 8080`
+//! Start with: `merlin webhook --port 8080`
 //! Configure your GitHub webhook to send `issue_comment` events to `http://host:8080/webhook/github`
 //! Configure your GitLab webhook to send `Note Hook` events to `http://host:8080/webhook/gitlab`
 

@@ -96,9 +96,9 @@ impl MerlinTool for DocstringTool {
 
         let count = all_suggestions.len();
         Ok(format!(
-            "## Ferret: Documentation Suggestions\n\nGenerated **{count}** docstring suggestion(s). \
+            "## Merlin: Documentation Suggestions\n\nGenerated **{count}** docstring suggestion(s). \
              Accept them from the diff view.\n\n\
-             *Documented by [Merlin](https://github.com/you/ferret) 🦡*"
+             *Documented by [Merlin](https://github.com/you/merlin) 🦡*"
         ))
     }
 }

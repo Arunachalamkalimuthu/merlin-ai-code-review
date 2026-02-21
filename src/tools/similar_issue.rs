@@ -29,7 +29,7 @@ impl MerlinTool for SimilarIssueTool {
         let issues = ctx.platform.list_issues(50).await?;
 
         if issues.is_empty() {
-            return Ok("## Ferret: Similar Issues\n\nNo open issues found.".to_string());
+            return Ok("## Merlin: Similar Issues\n\nNo open issues found.".to_string());
         }
 
         // Build compact issue list for AI
@@ -73,10 +73,10 @@ impl MerlinTool for SimilarIssueTool {
             serde_json::from_str(cleaned).unwrap_or_default();
 
         if similar.is_empty() {
-            return Ok("## Ferret: Similar Issues\n\nNo closely related issues found.".to_string());
+            return Ok("## Merlin: Similar Issues\n\nNo closely related issues found.".to_string());
         }
 
-        let mut out = "## Ferret: Similar Issues\n\n".to_string();
+        let mut out = "## Merlin: Similar Issues\n\n".to_string();
         out.push_str("| Score | Issue | Reason |\n");
         out.push_str("|-------|-------|--------|\n");
 
@@ -93,7 +93,7 @@ impl MerlinTool for SimilarIssueTool {
             }
         }
 
-        out.push_str("\n*Found by [Merlin](https://github.com/you/ferret) 🦡*");
+        out.push_str("\n*Found by [Merlin](https://github.com/you/merlin) 🦡*");
         Ok(out)
     }
 }

@@ -160,7 +160,7 @@ impl PlatformClient for GitHubClient {
             .get(&url)
             .header("Authorization", self.auth_header())
             .header("Accept", "application/vnd.github.v3+json")
-            .header("User-Agent", "ferret-review/0.1")
+            .header("User-Agent", "merlin-review/0.1")
             .send()
             .await?
             .error_for_status()
@@ -197,7 +197,7 @@ impl PlatformClient for GitHubClient {
             .post(&url)
             .header("Authorization", self.auth_header())
             .header("Accept", "application/vnd.github.v3+json")
-            .header("User-Agent", "ferret-review/0.1")
+            .header("User-Agent", "merlin-review/0.1")
             .json(&payload)
             .send()
             .await?
@@ -215,7 +215,7 @@ impl PlatformClient for GitHubClient {
             .post(&url)
             .header("Authorization", self.auth_header())
             .header("Accept", "application/vnd.github.v3+json")
-            .header("User-Agent", "ferret-review/0.1")
+            .header("User-Agent", "merlin-review/0.1")
             .json(&payload)
             .send()
             .await?
@@ -232,7 +232,7 @@ impl PlatformClient for GitHubClient {
             .get(&url)
             .header("Authorization", self.auth_header())
             .header("Accept", "application/vnd.github.v3+json")
-            .header("User-Agent", "ferret-review/0.1")
+            .header("User-Agent", "merlin-review/0.1")
             .send()
             .await?
             .error_for_status()
@@ -265,7 +265,7 @@ impl PlatformClient for GitHubClient {
             .patch(&url)
             .header("Authorization", self.auth_header())
             .header("Accept", "application/vnd.github.v3+json")
-            .header("User-Agent", "ferret-review/0.1")
+            .header("User-Agent", "merlin-review/0.1")
             .json(&payload)
             .send()
             .await?
@@ -283,7 +283,7 @@ impl PlatformClient for GitHubClient {
             .put(&url)
             .header("Authorization", self.auth_header())
             .header("Accept", "application/vnd.github.v3+json")
-            .header("User-Agent", "ferret-review/0.1")
+            .header("User-Agent", "merlin-review/0.1")
             .json(&payload)
             .send()
             .await?
@@ -303,7 +303,7 @@ impl PlatformClient for GitHubClient {
             .get(&url)
             .header("Authorization", self.auth_header())
             .header("Accept", "application/vnd.github.v3+json")
-            .header("User-Agent", "ferret-review/0.1")
+            .header("User-Agent", "merlin-review/0.1")
             .send()
             .await?
             .error_for_status()
@@ -346,7 +346,7 @@ impl PlatformClient for GitHubClient {
                 .post(&url)
                 .header("Authorization", self.auth_header())
                 .header("Accept", "application/vnd.github.v3+json")
-                .header("User-Agent", "ferret-review/0.1")
+                .header("User-Agent", "merlin-review/0.1")
                 .json(&payload)
                 .send()
                 .await?
@@ -377,7 +377,7 @@ impl PlatformClient for GitHubClient {
             .put(&url)
             .header("Authorization", self.auth_header())
             .header("Accept", "application/vnd.github.v3+json")
-            .header("User-Agent", "ferret-review/0.1")
+            .header("User-Agent", "merlin-review/0.1")
             .json(&payload)
             .send()
             .await?
@@ -396,7 +396,7 @@ impl PlatformClient for GitHubClient {
             .get(&url)
             .header("Authorization", self.auth_header())
             .header("Accept", "application/vnd.github.v3+json")
-            .header("User-Agent", "ferret-review/0.1")
+            .header("User-Agent", "merlin-review/0.1")
             .send()
             .await?;
 

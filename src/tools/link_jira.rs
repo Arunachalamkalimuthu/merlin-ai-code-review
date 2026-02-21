@@ -26,9 +26,9 @@ impl MerlinTool for LinkJiraTool {
         let api_token = match Config::jira_token() {
             Ok(t) => t,
             Err(_) => {
-                return Ok("## Ferret: Jira\n\n⚠️ `JIRA_TOKEN` not set. \
+                return Ok("## Merlin: Jira\n\n⚠️ `JIRA_TOKEN` not set. \
                            Please configure your Jira API token to enable this integration.\n\
-                           *[Merlin](https://github.com/you/ferret) 🦡*"
+                           *[Merlin](https://github.com/you/merlin) 🦡*"
                     .to_string())
             }
         };
@@ -39,9 +39,9 @@ impl MerlinTool for LinkJiraTool {
             .jira;
 
         if !jira_cfg.is_configured() {
-            return Ok("## Ferret: Jira\n\n⚠️ Jira is not configured. \
+            return Ok("## Merlin: Jira\n\n⚠️ Jira is not configured. \
                        Add `[jira] base_url = \"...\"` to `merlin.toml`.\n\
-                       *[Merlin](https://github.com/you/ferret) 🦡*"
+                       *[Merlin](https://github.com/you/merlin) 🦡*"
                 .to_string());
         }
 
@@ -57,7 +57,7 @@ impl MerlinTool for LinkJiraTool {
         let keywords: String = pr_info.title.split_whitespace().take(5).collect::<Vec<_>>().join(" ");
         let searched = jira.search_issues(&keywords, 5).await.unwrap_or_default();
 
-        let mut out = "## Ferret: Jira Issue Links\n\n".to_string();
+        let mut out = "## Merlin: Jira Issue Links\n\n".to_string();
 
         if !explicit_keys.is_empty() {
             out.push_str(&format!(
@@ -73,7 +73,7 @@ impl MerlinTool for LinkJiraTool {
         out.push_str("### Related Issues (by keyword)\n\n");
         out.push_str(&JiraClient::format_issues_table(&searched));
 
-        out.push_str("\n*[Merlin](https://github.com/you/ferret) 🦡*");
+        out.push_str("\n*[Merlin](https://github.com/you/merlin) 🦡*");
         Ok(out)
     }
 }
