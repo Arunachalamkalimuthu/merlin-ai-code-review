@@ -10,6 +10,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ---
 
+## [0.1.4] — 2026-02-21
+
+### Fixed
+
+- **`cargo fmt`** — auto-formatted entire codebase (68 files); CI `cargo fmt --check` now passes
+- **`cargo deny` schema** — migrated `deny.toml` to cargo-deny v2: removed deprecated `unsound`,
+  `unlicensed`, and `licenses.deny` fields; changed `unmaintained = "warn"` → `"none"`
+- **License allowlist** — added `Unicode-3.0` (icu_* crates via reqwest → idna) and
+  `CDLA-Permissive-2.0` (webpki-roots via reqwest) to `deny.toml`; `cargo deny check` now passes
+- **Clippy `--all-targets --all-features`** — fixed three additional lint errors caught only when
+  compiling test targets: `format_collect` in `src/rag/indexer.rs`, `single_match` in
+  `src/update.rs`, and `dead_code` in `tests/common/mod.rs`
+
+---
+
 ## [0.1.3] — 2026-02-21
 
 ### Added
