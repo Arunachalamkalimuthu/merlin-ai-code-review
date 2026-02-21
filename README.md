@@ -1,5 +1,13 @@
 # Merlin 🧙
 
+[![CI](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/actions/workflows/ci.yml/badge.svg)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/actions/workflows/ci.yml)
+[![Release](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/actions/workflows/release.yml/badge.svg)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/actions/workflows/release.yml)
+[![Latest Release](https://img.shields.io/github/v/release/Arunachalamkalimuthu/merlin-ai-code-review?color=f78166&label=latest)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/blob/main/LICENSE)
+[![Rust](https://img.shields.io/badge/built%20with-Rust-dea584?logo=rust)](https://www.rust-lang.org/)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ed?logo=docker)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/pkgs/container/merlin-ai-code-review)
+[![Docs](https://img.shields.io/badge/docs-merlin--review.com-f78166)](https://merlin-review.com/)
+
 **Self-hosted AI code review for GitHub, GitLab, Bitbucket, Azure DevOps, and Gitea** — open-source, bring-your-own-key, no code leaves your infrastructure.
 
 Merlin parses PR/MR diffs, sends the code to a configurable AI provider, and posts inline review comments plus a summary back to the PR/MR. It also auto-generates technical specifications, runs an autonomous ReAct-loop agent, and maintains a RAG index of your codebase for context-aware reviews.
