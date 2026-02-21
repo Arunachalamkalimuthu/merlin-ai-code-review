@@ -11,11 +11,9 @@ use merlin::ai::build_provider;
 use merlin::config::Config;
 use merlin::diff::parse_diff;
 use merlin::error::Result;
-use merlin::index_state::IndexFreshnessStore;
 use merlin::platform::build_client;
 use merlin::rag::build_pipeline;
 use merlin::review::ReviewEngine;
-use merlin::serve::{ServeState, serve as api_serve};
 use merlin::tools::{route_command, ToolContext};
 use merlin::webhook::{WebhookState, serve};
 
@@ -108,17 +106,6 @@ enum Commands {
         /// Run a single task non-interactively and exit
         #[arg(long)]
         task: Option<String>,
-    },
-
-    /// Start the REST API server for third-party integrations
-    ///
-    /// Exposes endpoints for triggering indexing, searching the code index,
-    /// and running reviews programmatically.  Protect the server with an API
-    /// key via `[serve] api_key` in merlin.toml or the MERLIN_API_KEY env var.
-    Serve {
-        /// Port to listen on (overrides [serve] port in merlin.toml)
-        #[arg(long, default_value = "3000")]
-        port: Option<u16>,
     },
 }
 
@@ -307,25 +294,6 @@ async fn run() -> Result<()> {
                     println!("{n} document(s) indexed in '{}'.", config.rag.collection);
                 }
             }
-        }
-
-        // ── merlin serve ─────────────────────────────────────────────────────
-        Commands::Serve { port } => {
-            let ai = Arc::from(build_provider(&config.ai)?);
-            let rag = Arc::new(build_pipeline(&config.rag));
-            let index_store = Arc::new(IndexFreshnessStore::new(
-                &config.serve.index_state_path,
-            ));
-            let listen_port = port.unwrap_or(config.serve.port);
-
-            let state = Arc::new(ServeState {
-                config: Arc::new(config),
-                ai,
-                rag,
-                index_store,
-            });
-
-            api_serve(state, listen_port).await;
         }
 
         // ── ferret parse-diff ────────────────────────────────────────────────
