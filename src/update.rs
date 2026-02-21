@@ -126,7 +126,7 @@ pub async fn self_update(force: bool) -> Result<()> {
     let client = reqwest::Client::builder()
         .user_agent(format!("merlin/{CURRENT_VERSION}"))
         .build()
-        .map_err(|e| MerlinError::Http(e))?;
+        .map_err(MerlinError::Http)?;
 
     // Download binary into a temp file
     let binary_bytes = download_bytes(&client, &binary_url).await?;
@@ -211,7 +211,7 @@ async fn fetch_latest_release() -> Result<GithubRelease> {
     let client = reqwest::Client::builder()
         .user_agent(format!("merlin/{CURRENT_VERSION}"))
         .build()
-        .map_err(|e| MerlinError::Http(e))?;
+        .map_err(MerlinError::Http)?;
 
     let response = client
         .get(RELEASES_API)
