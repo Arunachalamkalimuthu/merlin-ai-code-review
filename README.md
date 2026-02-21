@@ -22,7 +22,10 @@ Merlin runs in your CI pipeline, reviews pull request diffs with your AI provide
 - [Quick Start](#quick-start)
   - [GitHub Actions](#github-actions)
   - [GitLab CI](#gitlab-ci)
-- [GitHub Permissions & Bot Identity](#github-permissions--bot-identity)
+  - [Bitbucket Pipelines](#bitbucket-pipelines)
+  - [Azure DevOps](#azure-devops)
+  - [Gitea Actions](#gitea-actions)
+- [Permissions & Bot Identity](#permissions--bot-identity)
 - [AI Providers](#ai-providers)
 - [RAG — Context-Aware Reviews](#rag--context-aware-reviews)
 - [Slash Commands](#slash-commands)
@@ -220,35 +223,131 @@ See [`.gitlab-ci.yml.example`](.gitlab-ci.yml.example) for all RAG embedding and
 | **D — Fully private** | Ollama (GitLab service) | Local JSONL (cached) | Privileged runner |
 | **E — No RAG** | — | — | Nothing extra |
 
+### Bitbucket Pipelines
+
+```yaml
+# bitbucket-pipelines.yml
+pipelines:
+  pull-requests:
+    '**':
+      - step:
+          name: Merlin AI Review
+          image: ghcr.io/arunachalamkalimuthu/merlin-ai-code-review:latest
+          script:
+            - merlin review
+          variables:
+            BITBUCKET_TOKEN: $BITBUCKET_STEP_TOKEN   # auto-generated per step — no setup needed
+            ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
+```
+
+`BITBUCKET_STEP_TOKEN` is created automatically for every pipeline step. Set `ANTHROPIC_API_KEY` (and other AI keys) in **Repository settings → Pipelines → Repository variables**.
+
+Bot identity: comments appear as the **Pipelines build service user** — no manual bot creation needed.
+
+### Azure DevOps
+
+```yaml
+# azure-pipelines.yml
+trigger: none
+
+pr:
+  branches:
+    include:
+      - '*'
+
+pool:
+  vmImage: ubuntu-latest
+
+container:
+  image: ghcr.io/arunachalamkalimuthu/merlin-ai-code-review:latest
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+
+  - script: merlin review
+    displayName: Merlin AI Review
+    env:
+      AZURE_DEVOPS_TOKEN: $(System.AccessToken)
+      ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)
+      SYSTEM_TEAMFOUNDATIONCOLLECTIONURI: $(System.TeamFoundationCollectionUri)
+      SYSTEM_TEAMPROJECT: $(System.TeamProject)
+      BUILD_REPOSITORY_NAME: $(Build.Repository.Name)
+      BUILD_SOURCEBRANCH: $(Build.SourceBranch)
+      SYSTEM_PULLREQUEST_PULLREQUESTID: $(System.PullRequest.PullRequestId)
+```
+
+**One-time setup:** In the pipeline editor go to **⋮ → Triggers → YAML → Get sources** and tick **"Allow scripts to access the OAuth token"**. This exposes `$(System.AccessToken)` to the script — no PAT or manual bot needed.
+
+Bot identity: comments appear as **Project Collection Build Service ({org})**.
+
+### Gitea Actions
+
+```yaml
+# .gitea/workflows/merlin-review.yml
+name: Merlin AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  merlin-review:
+    name: Merlin AI Review
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/arunachalamkalimuthu/merlin-ai-code-review:latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Merlin Review
+        env:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}   # auto-generated (Gitea 1.21+)
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: merlin review
+```
+
+`secrets.GITEA_TOKEN` is created automatically by Gitea Actions (v1.21+), identical to how GitHub provides `secrets.GITHUB_TOKEN`. Set `ANTHROPIC_API_KEY` in **Repository Settings → Secrets**.
+
+Bot identity: comments appear as **`gitea-actions[bot]`** — no manual bot creation needed.
+
 ---
 
-## GitHub Permissions & Bot Identity
+## Permissions & Bot Identity
 
-### Required permissions
+### Bot identity is automatic — no manual setup needed
 
-The workflow **must** declare these permissions so that `GITHUB_TOKEN` can access the pull request API:
+Every supported platform provides an automatic CI token that Merlin uses to post review comments as a bot. You do not need to create a bot account or a GitHub App.
+
+| Platform | Use this token | Comments appear as | Manual setup? |
+|---|---|---|---|
+| GitHub Actions | `secrets.GITHUB_TOKEN` | `github-actions[bot]` | None |
+| GitLab CI | `CI_JOB_TOKEN` | GitLab project bot | None |
+| Bitbucket Pipelines | `BITBUCKET_STEP_TOKEN` | Pipelines build service | None |
+| Azure DevOps | `System.AccessToken` | Project Collection Build Service | Enable OAuth token in pipeline settings |
+| Gitea Actions | `secrets.GITEA_TOKEN` | `gitea-actions[bot]` | None (Gitea 1.21+) |
+
+> **If comments appear under your personal account** you are passing a Personal Access Token (PAT) instead of the platform's automatic token. Switch to the token shown in the table above and the bot identity is restored automatically.
+
+### GitHub Actions — required permissions block
+
+GitHub Actions defaults to a read-only token. You must declare write access explicitly or the API returns `403 Forbidden`:
 
 ```yaml
 permissions:
   contents: read        # needed by actions/checkout
-  pull-requests: write  # needed to fetch the PR diff and post review comments
+  pull-requests: write  # needed to fetch the PR diff and post inline comments
 ```
 
-Without `pull-requests: write`, GitHub returns `403 Forbidden` when Merlin calls `/repos/{owner}/{repo}/pulls/{n}/files`.
+The other platforms grant the necessary access automatically through their built-in CI tokens.
 
-### Who posts the review comments?
+### GitHub — custom named bot (optional)
 
-| Token used | Comments appear as |
-|---|---|
-| `secrets.GITHUB_TOKEN` (auto-generated) | `github-actions[bot]` |
-| Personal Access Token (PAT) stored as a secret | Your user account |
-| GitHub App token | `your-app-name[bot]` |
-
-**Common mistake:** if comments appear under your personal account name instead of a bot, you are passing a PAT rather than the auto-generated `GITHUB_TOKEN`. The auto-generated token is available as `${{ secrets.GITHUB_TOKEN }}` in every Actions workflow and always posts as `github-actions[bot]`. You cannot override it by creating a repository secret with the same name — GitHub blocks that.
-
-### Using a custom named bot (GitHub App)
-
-To have reviews appear as `"Merlin AI Reviewer[bot]"` instead of `github-actions[bot]`, create a GitHub App:
+If you want reviews to appear as `"Merlin AI Reviewer[bot]"` instead of `github-actions[bot]`, create a GitHub App:
 
 1. **Create the app** — GitHub Settings → Developer Settings → GitHub Apps → New GitHub App.
    Set permissions: `Pull requests: Read & write`, `Contents: Read`. Disable webhooks.
@@ -284,6 +383,8 @@ jobs:
           REPO: ${{ github.repository }}
         run: merlin review
 ```
+
+This is entirely optional — `github-actions[bot]` works out of the box with no setup.
 
 ---
 
