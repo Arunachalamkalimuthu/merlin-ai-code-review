@@ -7,14 +7,19 @@ use serde::{Deserialize, Serialize};
 use std::io::Write;
 use tracing::warn;
 
-/// Type of audit event.
+/// Type of audit event, serialised as a snake_case string in JSONL.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EventKind {
+    /// A full `/review` cycle completed.
     Review,
+    /// A slash-command tool (e.g. `/security`, `/spec`) ran.
     ToolRun,
+    /// A webhook payload was received and dispatched.
     WebhookReceived,
+    /// A single inline comment was posted to the platform.
     CommentPosted,
+    /// An error occurred during processing.
     Error,
 }
 
@@ -39,6 +44,7 @@ pub struct AuditEvent {
 }
 
 impl AuditEvent {
+    /// Return the current UTC time as an RFC 3339 string (e.g. `"2024-06-01T12:00:00Z"`).
     pub fn now() -> String {
         // Simple UTC timestamp without chrono
         let secs = std::time::SystemTime::now()
@@ -122,17 +128,26 @@ fn is_leap(year: u32) -> bool {
 
 // ── Logger ────────────────────────────────────────────────────────────────────
 
-/// Appends audit events to a JSONL file.
+/// Appends [`AuditEvent`]s to a JSONL log file.
+///
+/// Each call to [`AuditLogger::log`] opens the file in append mode, writes one
+/// JSON line, and closes it — no long-lived file handle is kept.  This makes the
+/// logger safe to use across async tasks without additional synchronisation.
+///
+/// When `enabled` is `false`, [`AuditLogger::log`] is a no-op and the file is
+/// never created.
 pub struct AuditLogger {
     log_path: String,
     enabled: bool,
 }
 
 impl AuditLogger {
+    /// Create a logger that writes to `log_path` when `enabled` is `true`.
     pub fn new(log_path: String, enabled: bool) -> Self {
         Self { log_path, enabled }
     }
 
+    /// Create a logger from [`crate::config::AuditConfig`].
     pub fn from_config(cfg: &crate::config::AuditConfig) -> Self {
         Self::new(cfg.log_path.clone(), cfg.enabled)
     }

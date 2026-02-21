@@ -1,8 +1,39 @@
+//! Configuration schema, TOML loading, and environment-variable credential helpers.
+//!
+//! [`Config`] is the root struct that maps directly to `merlin.toml`.  Load it
+//! with [`Config::load`] or [`Config::load_default`]; all fields have sensible
+//! defaults so an empty (or missing) file is valid.
+//!
+//! Secrets are read from environment variables — never stored in the config
+//! file.  The helper methods on [`Config`] (e.g. [`Config::anthropic_api_key`])
+//! return [`crate::error::MerlinError::EnvVar`] when the required variable is
+//! absent, so callers get a clear error message instead of a panic.
+//!
+//! # Example — minimal `merlin.toml`
+//!
+//! ```toml
+//! [ai]
+//! provider   = "anthropic"
+//! model      = "claude-sonnet-4-6"
+//! max_tokens = 4096
+//!
+//! [review]
+//! focus        = ["bugs", "security"]
+//! max_comments = 20
+//! reflect      = true
+//! ```
+
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 use crate::error::{MerlinError, Result};
 
+/// Which AI backend to use.
+///
+/// Serialises as a kebab-case string in TOML (e.g. `"azure-openai"`).
+/// Each variant requires different environment variables — see
+/// [`crate::ai::build_provider`] and the individual provider modules for
+/// details.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AiProviderType {
@@ -21,8 +52,13 @@ pub enum AiProviderType {
     Bedrock,
 }
 
+/// AI provider settings — maps to the `[ai]` table in `merlin.toml`.
+///
+/// Construct with [`AiConfig::default`] for a ready-to-use Anthropic/Claude
+/// configuration, then override individual fields as needed.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AiConfig {
+    /// Which AI backend to use (default: `"anthropic"`).
     #[serde(default)]
     pub provider: AiProviderType,
     #[serde(default = "default_model")]
@@ -102,12 +138,17 @@ pub struct PersonaConfig {
 
 // ── Review config ──────────────────────────────────────────────────────────────
 
+/// Review behaviour settings — maps to the `[review]` table in `merlin.toml`.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ReviewConfig {
+    /// Categories to check: any combination of `"bugs"`, `"security"`,
+    /// `"style"`, `"performance"` (default: all four).
     #[serde(default = "default_focus")]
     pub focus: Vec<String>,
+    /// Maximum inline comments per review (default: 30).
     #[serde(default = "default_max_comments")]
     pub max_comments: usize,
+    /// Lines per diff chunk sent to the AI in a single request (default: 200).
     #[serde(default = "default_chunk_lines")]
     pub chunk_lines: usize,
     /// Enable the "Reflect & Review" second AI pass that critiques the first-pass comments.
@@ -455,6 +496,19 @@ impl Default for AgentConfig {
 
 // ── Root config ────────────────────────────────────────────────────────────────
 
+/// Root configuration struct — the complete contents of `merlin.toml`.
+///
+/// Load with [`Config::load`] or [`Config::load_default`].  All sub-structs
+/// have sensible defaults, so an empty file — or no file at all — is valid.
+///
+/// # Examples
+///
+/// ```no_run
+/// use merlin::config::Config;
+///
+/// let cfg = Config::load_default().unwrap();
+/// assert_eq!(cfg.ai.max_tokens, 4096);
+/// ```
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct Config {
     #[serde(default)]
@@ -480,7 +534,13 @@ pub struct Config {
 }
 
 impl Config {
-    /// Load config from a TOML file, falling back to defaults if not found.
+    /// Load config from a TOML file, falling back to all-defaults if the file
+    /// is not found.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MerlinError::Io`] if the file exists but cannot be read, or
+    /// [`MerlinError::TomlDe`] if the file is not valid TOML.
     pub fn load(path: &Path) -> Result<Self> {
         if !path.exists() {
             tracing::debug!("Config file not found at {:?}, using defaults", path);
@@ -491,7 +551,13 @@ impl Config {
         Ok(config)
     }
 
-    /// Load from the default location (`merlin.toml` in the current directory).
+    /// Load from the default path (`merlin.toml` in the current directory).
+    ///
+    /// Equivalent to `Config::load(Path::new("merlin.toml"))`.
+    ///
+    /// # Errors
+    ///
+    /// See [`Config::load`].
     pub fn load_default() -> Result<Self> {
         Self::load(Path::new("merlin.toml"))
     }

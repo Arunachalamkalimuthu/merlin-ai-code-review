@@ -32,9 +32,17 @@ use crate::error::Result;
 use crate::platform::PlatformClient;
 use crate::rag::RagPipeline;
 
+/// Orchestrates a complete code-review cycle.
+///
+/// Construct with [`ReviewEngine::new`], optionally attach a RAG pipeline via
+/// [`ReviewEngine::with_rag`], then call [`ReviewEngine::run`] (CI mode) or
+/// [`ReviewEngine::run_local`] (local diff file mode).
 pub struct ReviewEngine {
+    /// The AI backend used to generate review comments.
     pub ai: Arc<dyn AiProvider>,
+    /// The VCS platform client used to fetch diffs and post comments.
     pub platform: Arc<dyn PlatformClient>,
+    /// Review behaviour settings (focus categories, chunk size, comment cap, …).
     pub config: ReviewConfig,
     /// Optional RAG pipeline — when present, relevant codebase context is prepended
     /// to each AI review chunk.
@@ -42,6 +50,9 @@ pub struct ReviewEngine {
 }
 
 impl ReviewEngine {
+    /// Create a new engine without a RAG pipeline.
+    ///
+    /// To add RAG context injection, chain [`ReviewEngine::with_rag`].
     pub fn new(
         ai: Arc<dyn AiProvider>,
         platform: Arc<dyn PlatformClient>,
@@ -50,12 +61,22 @@ impl ReviewEngine {
         Self { ai, platform, config, rag: None }
     }
 
+    /// Attach a RAG pipeline so each diff chunk is enriched with codebase context.
     pub fn with_rag(mut self, rag: Arc<RagPipeline>) -> Self {
         self.rag = Some(rag);
         self
     }
 
-    /// Run the full review cycle: fetch diff → parse → AI review → post comments.
+    /// Run the full review cycle: fetch diff → parse → AI → post comments.
+    ///
+    /// Follows the eight-step cycle described in the module docs.  Returns the
+    /// final (deduplicated, capped) list of [`ReviewComment`]s that were posted.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::error::MerlinError::Platform`] if fetching the diff or
+    /// posting the summary fails.  Individual inline-comment failures are logged
+    /// as warnings and do not abort the cycle.
     pub async fn run(&self) -> Result<Vec<ReviewComment>> {
         // 1. Fetch raw diff from platform
         info!("Fetching diff from platform...");
@@ -118,7 +139,15 @@ impl ReviewEngine {
         Ok(comments)
     }
 
-    /// Run review from a local diff string (for `--diff <file>` local mode).
+    /// Review a local diff string without contacting the platform.
+    ///
+    /// Use this when running `merlin review --diff <file>` or from the REST API
+    /// endpoint.  Comments are returned but never posted.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::error::MerlinError::DiffParse`] if `raw_diff` is malformed,
+    /// or an AI error if all chunks fail.
     pub async fn run_local(&self, raw_diff: &str) -> Result<Vec<ReviewComment>> {
         let file_diffs = parse_diff(raw_diff)?;
         let contexts = self.build_contexts(&file_diffs);
@@ -259,12 +288,18 @@ fn deduplicate(comments: Vec<ReviewComment>) -> Vec<ReviewComment> {
         .collect()
 }
 
-/// Public alias so ReviewTool can call it.
+/// Build a plain Markdown summary without complexity metadata.
+///
+/// Convenience wrapper over [`build_summary`] used by [`crate::tools`].
 pub fn build_summary_text(comments: &[ReviewComment]) -> String {
     build_summary(comments, None)
 }
 
-/// Build a Markdown summary from all comments, optionally including complexity.
+/// Build a Markdown summary comment from `comments`, optionally prefixed with
+/// a [`crate::digest::ComplexityScore`] line.
+///
+/// The summary is posted to the PR by [`ReviewEngine::run`] after all inline
+/// comments have been posted.
 pub fn build_summary(
     comments: &[ReviewComment],
     complexity: Option<&crate::digest::ComplexityScore>,

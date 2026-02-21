@@ -29,21 +29,27 @@
 //! ```
 use crate::error::{MerlinError, Result};
 
-/// A single line within a hunk with its kind and new-file line number.
+/// A single line within a hunk, tagged with its kind and source line numbers.
 #[derive(Debug, Clone, PartialEq)]
 pub struct HunkLine {
+    /// Whether this line was added, removed, or unchanged.
     pub kind: LineKind,
+    /// Raw line content without the leading `+`/`-`/` ` prefix character.
     pub content: String,
-    /// Line number in the *new* file (None for removed lines).
+    /// Line number in the *new* file — `None` for removed lines.
     pub new_line: Option<u32>,
-    /// Line number in the *old* file (None for added lines).
+    /// Line number in the *old* file — `None` for added lines.
     pub old_line: Option<u32>,
 }
 
+/// Classification of a single diff line.
 #[derive(Debug, Clone, PartialEq)]
 pub enum LineKind {
+    /// Unchanged line present in both old and new file (` ` prefix).
     Context,
+    /// Line added in the new file (`+` prefix).
     Added,
+    /// Line removed from the old file (`-` prefix).
     Removed,
 }
 
@@ -99,7 +105,12 @@ impl FileDiff {
     }
 }
 
-/// Parse a unified diff string into a list of `FileDiff` structs.
+/// Parse a unified diff string into a list of [`FileDiff`] structs.
+///
+/// # Errors
+///
+/// Returns [`crate::error::MerlinError::DiffParse`] if a hunk header (`@@ … @@`)
+/// is malformed or contains unparseable range values.
 pub fn parse_diff(input: &str) -> Result<Vec<FileDiff>> {
     let mut files: Vec<FileDiff> = Vec::new();
     let mut current: Option<FileDiff> = None;
