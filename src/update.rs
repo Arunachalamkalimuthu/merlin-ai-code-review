@@ -334,9 +334,8 @@ mod tests {
         // Should not panic on the CI runner's platform
         let result = platform_asset_name();
         // Either succeeds or returns an unsupported-platform error — both are OK
-        match result {
-            Ok(name) => assert!(name.starts_with("merlin-")),
-            Err(_) => {}
+        if let Ok(name) = result {
+            assert!(name.starts_with("merlin-"));
         }
     }
 

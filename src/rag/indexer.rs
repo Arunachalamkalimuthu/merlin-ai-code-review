@@ -174,7 +174,10 @@ mod tests {
     fn test_chunk_file_multiple_chunks() {
         let dir = tempfile::tempdir().unwrap();
         let f = dir.path().join("big.rs");
-        let content: String = (0..200).map(|i| format!("// line {i}\n")).collect();
+        let content: String = (0..200).fold(String::new(), |mut acc, i| {
+            acc.push_str(&format!("// line {i}\n"));
+            acc
+        });
         std::fs::write(&f, content).unwrap();
         let docs = chunk_file(&f, 50).unwrap();
         assert!(docs.len() > 1, "Expected multiple chunks");

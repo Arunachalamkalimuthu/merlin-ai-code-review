@@ -1,8 +1,9 @@
-/// Shared test helpers: mock AI provider and mock platform client.
-///
-/// Import in any integration test file with:
-///   mod common;
-///   use common::{MockAi, MockPlatform, make_pr_info, make_comment};
+//! Shared test helpers: mock AI provider and mock platform client.
+//!
+//! Import in any integration test file with:
+//!   mod common;
+//!   use common::{MockAi, MockPlatform, make_pr_info, make_comment};
+#![allow(dead_code)]
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
