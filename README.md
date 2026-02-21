@@ -59,7 +59,15 @@ merlin-review:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 ```
 
-See [`.gitlab-ci.yml.example`](.gitlab-ci.yml.example) for the full example including an install-script alternative (no Docker required).
+See [`.gitlab-ci.yml.example`](.gitlab-ci.yml.example) for all embedding + vector store combinations:
+
+| Setup | Embedder | Store | Needs |
+|---|---|---|---|
+| **A — Recommended** | OpenAI | Local JSONL (cached) | `OPENAI_API_KEY` |
+| **B — Self-hosted** | OpenAI | Qdrant (service) | `OPENAI_API_KEY` |
+| **C — Managed cloud** | OpenAI | Pinecone | `OPENAI_API_KEY` + `PINECONE_API_KEY` |
+| **D — Fully private** | Ollama (service) | Local JSONL (cached) | Privileged runner |
+| **E — No RAG** | — | — | Nothing extra |
 
 ---
 
