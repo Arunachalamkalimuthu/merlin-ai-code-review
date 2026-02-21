@@ -165,6 +165,12 @@ jobs:
       - name: List dist contents
         run: ls -lh dist/
 
+      # Copy installer scripts into dist so they're uploaded as release assets
+      - name: Add installer scripts to dist
+        run: |
+          cp install.sh dist/install.sh
+          cp install.ps1 dist/install.ps1
+
       # Extract version from tag (strip leading 'v')
       - name: Set version
         id: version

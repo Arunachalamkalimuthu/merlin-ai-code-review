@@ -1,18 +1,65 @@
-ferret-review:
+# Merlin AI Code Review — GitLab CI example
+# Copy the relevant job(s) into your .gitlab-ci.yml
+#
+# Secrets to add in GitLab → Settings → CI/CD → Variables:
+#   ANTHROPIC_API_KEY  — your Anthropic key (or OPENAI_API_KEY)
+
+stages:
+  - review
+
+# ── Merge request review ──────────────────────────────────────────────────────
+
+merlin-review:
   stage: review
   image: alpine:3.20
+
+  # Cache the binary across pipeline runs — avoids downloading every time
+  cache:
+    key: merlin-binary-$CI_RUNNER_ID
+    paths:
+      - .merlin/
+
   before_script:
     - apk add --no-cache curl ca-certificates
-    - curl -fsSL
-        https://github.com/you/ferret/releases/latest/download/ferret-linux-amd64
-        -o /usr/local/bin/ferret
-    - chmod +x /usr/local/bin/ferret
+
   script:
-    - ferret review
+    - |
+      # Install merlin if not already cached
+      if [ ! -x .merlin/merlin ]; then
+        mkdir -p .merlin
+        # musl binary = fully static, works on Alpine without glibc
+        curl -fsSL \
+          https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest/download/install.sh \
+          | MERLIN_INSTALL_DIR=.merlin sh
+      fi
+    - .merlin/merlin review
+
   variables:
-    GITLAB_TOKEN: $CI_JOB_TOKEN
+    GITLAB_TOKEN: $CI_JOB_TOKEN          # provided automatically — no secret needed
     ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
-    # Or use OpenAI:
+    # Uncomment for OpenAI instead:
     # OPENAI_API_KEY: $OPENAI_API_KEY
+
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# ── Optional: bot webhook mode ────────────────────────────────────────────────
+# Uncomment to run a persistent webhook server that responds to @merlin comments.
+#
+# merlin-bot:
+#   stage: review
+#   image: alpine:3.20
+#   before_script:
+#     - apk add --no-cache curl ca-certificates
+#     - |
+#       curl -fsSL \
+#         https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest/download/install.sh \
+#         | MERLIN_INSTALL_DIR=/usr/local/bin sh
+#   script:
+#     - merlin webhook --port 8080
+#   variables:
+#     GITLAB_TOKEN: $CI_JOB_TOKEN
+#     ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
+#     MERLIN_GITLAB_SECRET: $MERLIN_GITLAB_SECRET   # webhook signing secret
+#   rules:
+#     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
