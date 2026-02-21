@@ -62,9 +62,8 @@ pub struct DiscordChannel {
 impl DiscordChannel {
     /// Create a new Discord channel and start the polling loop.
     pub async fn new() -> crate::error::Result<Self> {
-        let token = std::env::var("DISCORD_BOT_TOKEN").map_err(|_| {
-            crate::error::MerlinError::EnvVar("DISCORD_BOT_TOKEN".to_string())
-        })?;
+        let token = std::env::var("DISCORD_BOT_TOKEN")
+            .map_err(|_| crate::error::MerlinError::EnvVar("DISCORD_BOT_TOKEN".to_string()))?;
 
         let client = reqwest::Client::new();
 
@@ -93,7 +92,11 @@ impl DiscordChannel {
         let poll_token = token.clone();
         tokio::spawn(poll_loop(poll_client, poll_token, bot_id, channel_ids, tx));
 
-        Ok(Self { token, task_rx, client })
+        Ok(Self {
+            token,
+            task_rx,
+            client,
+        })
     }
 
     /// Post a message to a Discord channel.

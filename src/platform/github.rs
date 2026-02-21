@@ -10,7 +10,7 @@ const GITHUB_API: &str = "https://api.github.com";
 
 pub struct GitHubClient {
     token: String,
-    repo: String,  // "owner/repo"
+    repo: String, // "owner/repo"
     pr_number: u64,
     /// SHA of the head commit (needed for inline review comments)
     head_sha: String,
@@ -35,9 +35,7 @@ impl GitHubClient {
 
         let pr_number: u64 = std::env::var("GITHUB_PR_NUMBER")
             .or_else(|_| {
-                std::env::var("GITHUB_REF").map(|r| {
-                    r.split('/').nth(2).unwrap_or("0").to_string()
-                })
+                std::env::var("GITHUB_REF").map(|r| r.split('/').nth(2).unwrap_or("0").to_string())
             })
             .map_err(|_| MerlinError::EnvVar("GITHUB_PR_NUMBER".to_string()))?
             .parse()
@@ -152,7 +150,10 @@ struct UpdateFileBody<'a> {
 impl PlatformClient for GitHubClient {
     #[instrument(skip(self))]
     async fn get_diff(&self) -> Result<String> {
-        let url = self.api(&format!("repos/{}/pulls/{}/files", self.repo, self.pr_number));
+        let url = self.api(&format!(
+            "repos/{}/pulls/{}/files",
+            self.repo, self.pr_number
+        ));
         debug!("Fetching PR files from: {url}");
 
         let files: Vec<GitHubFile> = self
@@ -171,7 +172,10 @@ impl PlatformClient for GitHubClient {
         let mut diff = String::new();
         for file in &files {
             if let Some(patch) = &file.patch {
-                diff.push_str(&format!("--- a/{}\n+++ b/{}\n", file.filename, file.filename));
+                diff.push_str(&format!(
+                    "--- a/{}\n+++ b/{}\n",
+                    file.filename, file.filename
+                ));
                 diff.push_str(patch);
                 diff.push('\n');
             }
@@ -181,7 +185,10 @@ impl PlatformClient for GitHubClient {
 
     #[instrument(skip(self, comment))]
     async fn post_inline_comment(&self, comment: &ReviewComment) -> Result<()> {
-        let url = self.api(&format!("repos/{}/pulls/{}/comments", self.repo, self.pr_number));
+        let url = self.api(&format!(
+            "repos/{}/pulls/{}/comments",
+            self.repo, self.pr_number
+        ));
         let emoji = severity_emoji(&comment.severity);
         let body_text = format_comment(emoji, comment);
 
@@ -208,7 +215,10 @@ impl PlatformClient for GitHubClient {
 
     #[instrument(skip(self, summary))]
     async fn post_summary(&self, summary: &str) -> Result<()> {
-        let url = self.api(&format!("repos/{}/issues/{}/comments", self.repo, self.pr_number));
+        let url = self.api(&format!(
+            "repos/{}/issues/{}/comments",
+            self.repo, self.pr_number
+        ));
         let payload = IssueCommentBody { body: summary };
 
         self.client
@@ -276,7 +286,10 @@ impl PlatformClient for GitHubClient {
 
     #[instrument(skip(self))]
     async fn set_labels(&self, labels: &[String]) -> Result<()> {
-        let url = self.api(&format!("repos/{}/issues/{}/labels", self.repo, self.pr_number));
+        let url = self.api(&format!(
+            "repos/{}/issues/{}/labels",
+            self.repo, self.pr_number
+        ));
         let payload = SetLabelsBody { labels };
 
         self.client
@@ -325,13 +338,13 @@ impl PlatformClient for GitHubClient {
 
     #[instrument(skip(self, suggestions))]
     async fn post_code_suggestions(&self, suggestions: &[InlineCodeSuggestion]) -> Result<()> {
-        let url = self.api(&format!("repos/{}/pulls/{}/comments", self.repo, self.pr_number));
+        let url = self.api(&format!(
+            "repos/{}/pulls/{}/comments",
+            self.repo, self.pr_number
+        ));
 
         for s in suggestions {
-            let body = format!(
-                "{}\n\n```suggestion\n{}\n```",
-                s.description, s.suggestion
-            );
+            let body = format!("{}\n\n```suggestion\n{}\n```", s.description, s.suggestion);
             let payload = serde_json::json!({
                 "body": body,
                 "commit_id": self.head_sha,

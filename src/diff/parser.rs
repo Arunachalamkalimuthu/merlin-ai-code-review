@@ -314,7 +314,8 @@ index abc1234..def5678 100644
 
     #[test]
     fn test_new_file_diff() {
-        let diff = "--- /dev/null\n+++ b/new_file.rs\n@@ -0,0 +1,2 @@\n+fn foo() {}\n+fn bar() {}\n";
+        let diff =
+            "--- /dev/null\n+++ b/new_file.rs\n@@ -0,0 +1,2 @@\n+fn foo() {}\n+fn bar() {}\n";
         let files = parse_diff(diff).unwrap();
         assert!(files[0].is_new);
         assert_eq!(files[0].new_path, "new_file.rs");

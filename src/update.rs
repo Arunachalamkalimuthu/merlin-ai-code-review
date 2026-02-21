@@ -33,7 +33,8 @@ use crate::error::{MerlinError, Result};
 pub const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const REPO: &str = "Arunachalamkalimuthu/merlin-ai-code-review";
-const RELEASES_API: &str = "https://api.github.com/repos/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest";
+const RELEASES_API: &str =
+    "https://api.github.com/repos/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest";
 
 // ── GitHub API types ──────────────────────────────────────────────────────────
 
@@ -115,9 +116,7 @@ pub async fn self_update(force: bool) -> Result<()> {
     let asset_name = platform_asset_name()?;
     let tag = &release.tag_name;
 
-    let base_url = format!(
-        "https://github.com/{REPO}/releases/download/{tag}"
-    );
+    let base_url = format!("https://github.com/{REPO}/releases/download/{tag}");
     let binary_url = format!("{base_url}/{asset_name}");
     let checksum_url = format!("{base_url}/{asset_name}.sha256");
 
@@ -136,7 +135,11 @@ pub async fn self_update(force: bool) -> Result<()> {
     match download_bytes(&client, &checksum_url).await {
         Ok(checksum_bytes) => {
             let checksum_str = String::from_utf8_lossy(&checksum_bytes);
-            let expected = checksum_str.split_whitespace().next().unwrap_or("").to_string();
+            let expected = checksum_str
+                .split_whitespace()
+                .next()
+                .unwrap_or("")
+                .to_string();
             let actual = sha256_hex(&binary_bytes);
 
             if !expected.is_empty() && actual != expected {
@@ -183,9 +186,8 @@ pub async fn self_update(force: bool) -> Result<()> {
     {
         let old_path = current_exe.with_extension("old");
         let _ = std::fs::remove_file(&old_path); // ignore error if not present
-        std::fs::rename(&current_exe, &old_path).map_err(|e| {
-            MerlinError::Other(format!("Could not rename current exe: {e}"))
-        })?;
+        std::fs::rename(&current_exe, &old_path)
+            .map_err(|e| MerlinError::Other(format!("Could not rename current exe: {e}")))?;
     }
 
     // Atomic rename: tmp → current exe
@@ -253,8 +255,8 @@ fn platform_asset_name() -> Result<String> {
 
     let name = match (os, arch) {
         ("macos", "aarch64") => "merlin-darwin-arm64",
-        ("macos", "x86_64")  => "merlin-darwin-amd64",
-        ("linux", "x86_64")  => "merlin-linux-amd64-musl",
+        ("macos", "x86_64") => "merlin-darwin-amd64",
+        ("linux", "x86_64") => "merlin-linux-amd64-musl",
         ("linux", "aarch64") => "merlin-linux-arm64-musl",
         ("windows", "x86_64") => "merlin-windows-amd64.exe",
         _ => {
@@ -291,7 +293,7 @@ fn parse_semver(v: &str) -> (u32, u32, u32) {
     let minor = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
     let patch = parts
         .next()
-        .and_then(|s| s.split('-').next())   // strip pre-release suffix
+        .and_then(|s| s.split('-').next()) // strip pre-release suffix
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
     (major, minor, patch)

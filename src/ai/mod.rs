@@ -250,7 +250,10 @@ pub fn build_provider(cfg: &AiConfig) -> Result<Box<dyn AiProvider>> {
     match cfg.provider {
         AiProviderType::Anthropic => {
             let key = Config::anthropic_api_key()?;
-            Ok(Box::new(anthropic::AnthropicProvider::new(key, cfg.clone())))
+            Ok(Box::new(anthropic::AnthropicProvider::new(
+                key,
+                cfg.clone(),
+            )))
         }
         AiProviderType::Openai => {
             let key = Config::openai_api_key()?;
@@ -268,7 +271,8 @@ pub fn build_provider(cfg: &AiConfig) -> Result<Box<dyn AiProvider>> {
             if !claude_code::ClaudeCodeProvider::is_available() {
                 return Err(crate::error::MerlinError::Config(
                     "`claude` CLI not found on PATH. \
-                     Install Claude Code: https://claude.ai/claude-code".to_string(),
+                     Install Claude Code: https://claude.ai/claude-code"
+                        .to_string(),
                 ));
             }
             Ok(Box::new(claude_code::ClaudeCodeProvider::new(cfg.clone())))
@@ -286,11 +290,19 @@ pub fn build_provider(cfg: &AiConfig) -> Result<Box<dyn AiProvider>> {
         }
         AiProviderType::AzureOpenai => {
             let key = Config::azure_openai_api_key()?;
-            Ok(Box::new(azure_openai::AzureOpenAiProvider::new(key, cfg.clone())))
+            Ok(Box::new(azure_openai::AzureOpenAiProvider::new(
+                key,
+                cfg.clone(),
+            )))
         }
         AiProviderType::Bedrock => {
             let (access, secret, token) = Config::aws_credentials()?;
-            Ok(Box::new(bedrock::BedrockProvider::new(access, secret, token, cfg.clone())))
+            Ok(Box::new(bedrock::BedrockProvider::new(
+                access,
+                secret,
+                token,
+                cfg.clone(),
+            )))
         }
     }
 }
@@ -315,12 +327,17 @@ mod tests {
             name: Some("security expert".to_string()),
             system_prompt_extra: Some("Be extra strict.".to_string()),
             focus_override: Some(vec!["security".to_string()]),
-            rules: Some(vec!["Never approve SQL without parameterisation.".to_string()]),
+            rules: Some(vec![
+                "Never approve SQL without parameterisation.".to_string()
+            ]),
         };
         let prompt = system_prompt_with_persona(&["bugs".to_string()], Some(&persona));
         assert!(prompt.contains("security expert"));
         assert!(prompt.contains("security"));
-        assert!(!prompt.contains("bugs"), "focus override should suppress original focus");
+        assert!(
+            !prompt.contains("bugs"),
+            "focus override should suppress original focus"
+        );
         assert!(prompt.contains("Review Rules"));
         assert!(prompt.contains("SQL without parameterisation"));
         assert!(prompt.contains("Be extra strict"));

@@ -1,20 +1,32 @@
+use merlin::diff::parse_diff;
 /// Tests for src/digest.rs — priority classification, compression, and PR status.
 use merlin::digest::{
     build_pr_status, classify_priority, compress_diff, estimate_tokens, prioritize_diffs,
     FilePriority, SizeLabel,
 };
-use merlin::diff::parse_diff;
 use merlin::platform::PrInfo;
 
 // ── classify_priority ─────────────────────────────────────────────────────────
 
 #[test]
 fn classify_auth_files_as_critical() {
-    assert_eq!(classify_priority("src/auth/handler.rs"), FilePriority::Critical);
+    assert_eq!(
+        classify_priority("src/auth/handler.rs"),
+        FilePriority::Critical
+    );
     assert_eq!(classify_priority("src/oauth2.rs"), FilePriority::Critical);
-    assert_eq!(classify_priority("config/jwt_secret.toml"), FilePriority::Critical);
-    assert_eq!(classify_priority("src/password_reset.rs"), FilePriority::Critical);
-    assert_eq!(classify_priority("middleware/rbac.rs"), FilePriority::Critical);
+    assert_eq!(
+        classify_priority("config/jwt_secret.toml"),
+        FilePriority::Critical
+    );
+    assert_eq!(
+        classify_priority("src/password_reset.rs"),
+        FilePriority::Critical
+    );
+    assert_eq!(
+        classify_priority("middleware/rbac.rs"),
+        FilePriority::Critical
+    );
 }
 
 #[test]
@@ -26,7 +38,10 @@ fn classify_generated_files_as_low() {
     assert_eq!(classify_priority("assets/logo.png"), FilePriority::Low);
     assert_eq!(classify_priority("assets/icon.svg"), FilePriority::Low);
     // vendor path needs a parent directory to match "/vendor/" substring
-    assert_eq!(classify_priority("third_party/vendor/lib.rs"), FilePriority::Low);
+    assert_eq!(
+        classify_priority("third_party/vendor/lib.rs"),
+        FilePriority::Low
+    );
 }
 
 #[test]
@@ -34,18 +49,30 @@ fn classify_test_files_as_medium() {
     // NOTE: files containing security keywords (auth, key, token, …) are
     // classified Critical even if they are test files — security wins.
     // Use paths that contain test keywords but NOT security keywords.
-    assert_eq!(classify_priority("tests/integration_spec.rs"), FilePriority::Medium);
+    assert_eq!(
+        classify_priority("tests/integration_spec.rs"),
+        FilePriority::Medium
+    );
     assert_eq!(classify_priority("mocks/mock_db.rs"), FilePriority::Medium);
-    assert_eq!(classify_priority("fixtures/sample.json"), FilePriority::Medium);
+    assert_eq!(
+        classify_priority("fixtures/sample.json"),
+        FilePriority::Medium
+    );
     assert_eq!(classify_priority("src/user_test.rs"), FilePriority::Medium);
 }
 
 #[test]
 fn security_keyword_beats_test_keyword() {
     // auth_test.rs contains "auth" → Critical, not Medium
-    assert_eq!(classify_priority("src/auth_test.rs"), FilePriority::Critical);
+    assert_eq!(
+        classify_priority("src/auth_test.rs"),
+        FilePriority::Critical
+    );
     // token_spec.rs contains "token" → Critical
-    assert_eq!(classify_priority("tests/token_spec.rs"), FilePriority::Critical);
+    assert_eq!(
+        classify_priority("tests/token_spec.rs"),
+        FilePriority::Critical
+    );
 }
 
 #[test]
@@ -257,7 +284,10 @@ index 000..111 100644
 ";
     let files = parse_diff(diff).unwrap();
     let status = build_pr_status(&make_pr_info(), &files, None);
-    assert!(status.has_secrets_risk, "Auth file should set has_secrets_risk");
+    assert!(
+        status.has_secrets_risk,
+        "Auth file should set has_secrets_risk"
+    );
 }
 
 #[test]
@@ -272,7 +302,10 @@ index 000..111 100644
 ";
     let files = parse_diff(diff).unwrap();
     let status = build_pr_status(&make_pr_info(), &files, None);
-    assert!(status.has_migration, "SQL migration file should be detected");
+    assert!(
+        status.has_migration,
+        "SQL migration file should be detected"
+    );
 }
 
 #[test]

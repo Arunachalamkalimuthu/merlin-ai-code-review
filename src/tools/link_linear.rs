@@ -42,8 +42,12 @@ impl MerlinTool for LinkLinearTool {
         let explicit_ids = LinearClient::extract_issue_identifiers(&search_text);
 
         // 2. Search for related issues by PR title keywords
-        let keywords: String =
-            pr_info.title.split_whitespace().take(5).collect::<Vec<_>>().join(" ");
+        let keywords: String = pr_info
+            .title
+            .split_whitespace()
+            .take(5)
+            .collect::<Vec<_>>()
+            .join(" ");
         let searched = linear.search_issues(&keywords, 5).await.unwrap_or_default();
 
         let mut out = "## Merlin: Linear Issue Links\n\n".to_string();

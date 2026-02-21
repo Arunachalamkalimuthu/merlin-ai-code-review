@@ -26,7 +26,11 @@ pub struct QdrantStore {
 
 impl QdrantStore {
     pub fn new(base_url: String, api_key: Option<String>) -> Self {
-        Self { base_url, api_key, client: reqwest::Client::new() }
+        Self {
+            base_url,
+            api_key,
+            client: reqwest::Client::new(),
+        }
     }
 
     fn req(&self, method: reqwest::Method, path: &str) -> reqwest::RequestBuilder {
@@ -110,7 +114,10 @@ impl VectorStore for QdrantStore {
 
         info!("Qdrant: creating collection '{collection}' (dim={dimension})");
         let body = CreateCollection {
-            vectors: VectorParams { size: dimension, distance: "Cosine" },
+            vectors: VectorParams {
+                size: dimension,
+                distance: "Cosine",
+            },
         };
         let resp = self
             .req(reqwest::Method::PUT, &format!("/collections/{collection}"))
@@ -212,7 +219,10 @@ impl VectorStore for QdrantStore {
 
     async fn clear(&self, collection: &str) -> Result<()> {
         let resp = self
-            .req(reqwest::Method::DELETE, &format!("/collections/{collection}"))
+            .req(
+                reqwest::Method::DELETE,
+                &format!("/collections/{collection}"),
+            )
             .send()
             .await?;
         if !resp.status().is_success() {
@@ -238,10 +248,9 @@ impl VectorStore for QdrantStore {
         if !resp.status().is_success() {
             return Ok(0);
         }
-        let r: CountResponse = resp
-            .json()
-            .await
-            .unwrap_or(CountResponse { result: CountResult { count: 0 } });
+        let r: CountResponse = resp.json().await.unwrap_or(CountResponse {
+            result: CountResult { count: 0 },
+        });
         Ok(r.result.count)
     }
 }

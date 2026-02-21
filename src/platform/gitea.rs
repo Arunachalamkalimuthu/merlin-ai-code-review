@@ -37,7 +37,15 @@ impl GiteaClient {
         head_sha: String,
     ) -> Self {
         let api_base = format!("{}/api/v1", server_url.trim_end_matches('/'));
-        Self { token, api_base, owner, repo, pr_number, head_sha, client: reqwest::Client::new() }
+        Self {
+            token,
+            api_base,
+            owner,
+            repo,
+            pr_number,
+            head_sha,
+            client: reqwest::Client::new(),
+        }
     }
 
     /// Build from Gitea Actions environment variables.
@@ -53,15 +61,15 @@ impl GiteaClient {
             .map_err(|_| MerlinError::EnvVar("GITEA_REPO".to_string()))?;
 
         let (owner, repo) = full_repo.split_once('/').ok_or_else(|| {
-            MerlinError::Config(format!("Invalid repo format '{full_repo}', expected owner/repo"))
+            MerlinError::Config(format!(
+                "Invalid repo format '{full_repo}', expected owner/repo"
+            ))
         })?;
 
         // PR number from GITEA_PR_NUMBER or parsed from GITHUB_REF (refs/pull/N/head)
         let pr_number: u64 = std::env::var("GITEA_PR_NUMBER")
             .or_else(|_| {
-                std::env::var("GITHUB_REF").map(|r| {
-                    r.split('/').nth(2).unwrap_or("0").to_string()
-                })
+                std::env::var("GITHUB_REF").map(|r| r.split('/').nth(2).unwrap_or("0").to_string())
             })
             .map_err(|_| MerlinError::EnvVar("GITEA_PR_NUMBER".to_string()))?
             .parse()
@@ -71,11 +79,21 @@ impl GiteaClient {
             .or_else(|_| std::env::var("GITHUB_SHA"))
             .map_err(|_| MerlinError::EnvVar("GITEA_SHA".to_string()))?;
 
-        Ok(Self::new(token, server_url, owner.to_string(), repo.to_string(), pr_number, head_sha))
+        Ok(Self::new(
+            token,
+            server_url,
+            owner.to_string(),
+            repo.to_string(),
+            pr_number,
+            head_sha,
+        ))
     }
 
     fn repo_url(&self, path: &str) -> String {
-        format!("{}/repos/{}/{}/{}", self.api_base, self.owner, self.repo, path)
+        format!(
+            "{}/repos/{}/{}/{}",
+            self.api_base, self.owner, self.repo, path
+        )
     }
 
     fn auth_header(&self) -> String {
@@ -172,12 +190,15 @@ impl PlatformClient for GiteaClient {
         debug!("Fetching Gitea PR diff from: {url}");
 
         let diff = self
-            .client.get(&url)
+            .client
+            .get(&url)
             .header("Authorization", self.auth_header())
-            .send().await?
+            .send()
+            .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("Gitea diff error: {e}")))?
-            .text().await?;
+            .text()
+            .await?;
 
         Ok(diff)
     }
@@ -199,10 +220,12 @@ impl PlatformClient for GiteaClient {
             }]
         });
 
-        self.client.post(&url)
+        self.client
+            .post(&url)
             .header("Authorization", self.auth_header())
             .json(&payload)
-            .send().await?
+            .send()
+            .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("Gitea inline comment: {e}")))?;
         Ok(())
@@ -213,10 +236,12 @@ impl PlatformClient for GiteaClient {
         let url = self.repo_url(&format!("issues/{}/comments", self.pr_number));
         let payload = GiteaCommentBody { body: summary };
 
-        self.client.post(&url)
+        self.client
+            .post(&url)
             .header("Authorization", self.auth_header())
             .json(&payload)
-            .send().await?
+            .send()
+            .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("Gitea summary: {e}")))?;
         Ok(())
@@ -226,12 +251,15 @@ impl PlatformClient for GiteaClient {
     async fn get_pr_info(&self) -> Result<PrInfo> {
         let url = self.repo_url(&format!("pulls/{}", self.pr_number));
         let pr: GiteaPr = self
-            .client.get(&url)
+            .client
+            .get(&url)
             .header("Authorization", self.auth_header())
-            .send().await?
+            .send()
+            .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("Gitea PR info: {e}")))?
-            .json().await?;
+            .json()
+            .await?;
 
         Ok(PrInfo {
             number: pr.number,
@@ -254,10 +282,12 @@ impl PlatformClient for GiteaClient {
         let url = self.repo_url(&format!("pulls/{}", self.pr_number));
         let payload = GiteaUpdatePr { title, body };
 
-        self.client.patch(&url)
+        self.client
+            .patch(&url)
             .header("Authorization", self.auth_header())
             .json(&payload)
-            .send().await?
+            .send()
+            .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("Gitea update PR: {e}")))?;
         Ok(())
@@ -265,15 +295,21 @@ impl PlatformClient for GiteaClient {
 
     #[instrument(skip(self))]
     async fn set_labels(&self, labels: &[String]) -> Result<()> {
-        if labels.is_empty() { return Ok(()); }
+        if labels.is_empty() {
+            return Ok(());
+        }
 
         // Resolve or create label IDs
         let existing_url = self.repo_url("labels");
         let existing: Vec<GiteaLabelResp> = self
-            .client.get(&existing_url)
+            .client
+            .get(&existing_url)
             .header("Authorization", self.auth_header())
-            .send().await?
-            .json().await.unwrap_or_default();
+            .send()
+            .await?
+            .json()
+            .await
+            .unwrap_or_default();
 
         let mut ids: Vec<u64> = Vec::new();
         for label_name in labels {
@@ -286,11 +322,16 @@ impl PlatformClient for GiteaClient {
                     color: "#ededed",
                 };
                 #[derive(Deserialize)]
-                struct CreatedLabel { id: u64 }
-                if let Ok(resp) = self.client.post(&existing_url)
+                struct CreatedLabel {
+                    id: u64,
+                }
+                if let Ok(resp) = self
+                    .client
+                    .post(&existing_url)
                     .header("Authorization", self.auth_header())
                     .json(&create_payload)
-                    .send().await
+                    .send()
+                    .await
                 {
                     if let Ok(created) = resp.json::<CreatedLabel>().await {
                         ids.push(created.id);
@@ -301,10 +342,12 @@ impl PlatformClient for GiteaClient {
 
         let url = self.repo_url(&format!("issues/{}/labels", self.pr_number));
         let payload = GiteaLabelsBody { labels: ids };
-        self.client.post(&url)
+        self.client
+            .post(&url)
             .header("Authorization", self.auth_header())
             .json(&payload)
-            .send().await?
+            .send()
+            .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("Gitea set labels: {e}")))?;
         Ok(())
@@ -314,20 +357,26 @@ impl PlatformClient for GiteaClient {
     async fn list_issues(&self, limit: usize) -> Result<Vec<Issue>> {
         let url = self.repo_url(&format!("issues?type=issues&state=open&limit={limit}"));
         let issues: Vec<GiteaIssue> = self
-            .client.get(&url)
+            .client
+            .get(&url)
             .header("Authorization", self.auth_header())
-            .send().await?
+            .send()
+            .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("Gitea issues: {e}")))?
-            .json().await?;
+            .json()
+            .await?;
 
-        Ok(issues.into_iter().map(|i| Issue {
-            number: i.number,
-            title: i.title,
-            body: i.body.unwrap_or_default(),
-            labels: i.labels.into_iter().map(|l| l.name).collect(),
-            url: i.html_url,
-        }).collect())
+        Ok(issues
+            .into_iter()
+            .map(|i| Issue {
+                number: i.number,
+                title: i.title,
+                body: i.body.unwrap_or_default(),
+                labels: i.labels.into_iter().map(|l| l.name).collect(),
+                url: i.html_url,
+            })
+            .collect())
     }
 
     async fn post_code_suggestions(&self, suggestions: &[InlineCodeSuggestion]) -> Result<()> {
@@ -344,10 +393,12 @@ impl PlatformClient for GiteaClient {
                     "body": body
                 }]
             });
-            self.client.post(&url)
+            self.client
+                .post(&url)
                 .header("Authorization", self.auth_header())
                 .json(&payload)
-                .send().await?
+                .send()
+                .await?
                 .error_for_status()
                 .map_err(|e| MerlinError::Platform(format!("Gitea suggestion: {e}")))?;
         }
@@ -375,16 +426,21 @@ impl PlatformClient for GiteaClient {
         }
 
         // Try PUT (update); if 404, POST (create)
-        let resp = self.client.put(&url)
+        let resp = self
+            .client
+            .put(&url)
             .header("Authorization", self.auth_header())
             .json(&payload)
-            .send().await?;
+            .send()
+            .await?;
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
-            self.client.post(&url)
+            self.client
+                .post(&url)
                 .header("Authorization", self.auth_header())
                 .json(&payload)
-                .send().await?
+                .send()
+                .await?
                 .error_for_status()
                 .map_err(|e| MerlinError::Platform(format!("Gitea create file: {e}")))?;
         } else {
@@ -398,9 +454,12 @@ impl PlatformClient for GiteaClient {
     async fn get_file(&self, path: &str) -> Result<Option<(String, String)>> {
         use base64::{engine::general_purpose::STANDARD, Engine};
         let url = self.repo_url(&format!("contents/{}", path.trim_start_matches('/')));
-        let resp = self.client.get(&url)
+        let resp = self
+            .client
+            .get(&url)
             .header("Authorization", self.auth_header())
-            .send().await?;
+            .send()
+            .await?;
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             return Ok(None);
@@ -409,12 +468,17 @@ impl PlatformClient for GiteaClient {
         let file: GiteaFileContent = resp
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("Gitea get file: {e}")))?
-            .json().await?;
+            .json()
+            .await?;
 
         let cleaned = file.content.replace('\n', "");
-        let bytes = STANDARD.decode(&cleaned)
+        let bytes = STANDARD
+            .decode(&cleaned)
             .map_err(|e| MerlinError::Platform(format!("Gitea base64 decode: {e}")))?;
-        Ok(Some((String::from_utf8_lossy(&bytes).into_owned(), file.sha)))
+        Ok(Some((
+            String::from_utf8_lossy(&bytes).into_owned(),
+            file.sha,
+        )))
     }
 }
 

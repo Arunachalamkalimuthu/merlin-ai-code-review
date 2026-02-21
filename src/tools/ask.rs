@@ -19,7 +19,9 @@ impl MerlinTool for AskTool {
         info!("Running /ask");
 
         let question = ctx.arg.as_deref().ok_or_else(|| {
-            MerlinError::Other("/ask requires a question. Usage: @merlin /ask <your question>".to_string())
+            MerlinError::Other(
+                "/ask requires a question. Usage: @merlin /ask <your question>".to_string(),
+            )
         })?;
 
         let raw_diff = ctx.platform.get_diff().await?;

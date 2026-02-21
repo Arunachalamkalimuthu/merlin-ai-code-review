@@ -9,16 +9,20 @@ use crate::rag::{RagPipeline, RetrievedDoc};
 
 /// Query the RAG pipeline and return formatted context ready for injection into
 /// an AI prompt.  Returns `None` when RAG is disabled or returns no results.
-pub async fn retrieve_context(
-    pipeline: &RagPipeline,
-    query: &str,
-) -> Result<Option<String>> {
+pub async fn retrieve_context(pipeline: &RagPipeline, query: &str) -> Result<Option<String>> {
     let docs = pipeline.retrieve(query, pipeline.config.top_k).await?;
     if docs.is_empty() {
-        debug!("RAG: no relevant context found for query ({} chars)", query.len());
+        debug!(
+            "RAG: no relevant context found for query ({} chars)",
+            query.len()
+        );
         return Ok(None);
     }
-    debug!("RAG: retrieved {} doc(s) for query ({} chars)", docs.len(), query.len());
+    debug!(
+        "RAG: retrieved {} doc(s) for query ({} chars)",
+        docs.len(),
+        query.len()
+    );
     Ok(Some(format_rag_context(&docs)))
 }
 

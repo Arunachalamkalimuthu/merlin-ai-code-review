@@ -205,9 +205,10 @@ mod tests {
         std::fs::write(target.join("main.rs"), "fn main() {}").unwrap();
         std::fs::write(dir.path().join("lib.rs"), "// lib").unwrap();
 
-        let files =
-            collect_files(dir.path(), &[".rs".to_string()]);
+        let files = collect_files(dir.path(), &[".rs".to_string()]);
         assert!(!files.iter().any(|p| p.to_string_lossy().contains("target")));
-        assert!(files.iter().any(|p| p.to_string_lossy().ends_with("lib.rs")));
+        assert!(files
+            .iter()
+            .any(|p| p.to_string_lossy().ends_with("lib.rs")));
     }
 }

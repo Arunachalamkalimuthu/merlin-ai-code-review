@@ -35,8 +35,14 @@ async fn spec_updates_pr_description() {
         .expect("update_description should have been called");
 
     assert_eq!(title, "feat: add new feature");
-    assert!(!body.trim_start().starts_with("# "), "H1 must be stripped from the body");
-    assert!(body.contains("Overview"), "Body should contain spec content");
+    assert!(
+        !body.trim_start().starts_with("# "),
+        "H1 must be stripped from the body"
+    );
+    assert!(
+        body.contains("Overview"),
+        "Body should contain spec content"
+    );
 }
 
 #[tokio::test]
@@ -66,7 +72,10 @@ async fn spec_handles_empty_existing_description() {
     let ctx = make_ctx(ai, Arc::clone(&platform));
 
     // Must not panic on empty body
-    SpecTool.run(&ctx).await.expect("should handle empty PR body");
+    SpecTool
+        .run(&ctx)
+        .await
+        .expect("should handle empty PR body");
     assert!(platform.last_description().is_some());
 }
 
@@ -103,7 +112,10 @@ async fn spec_with_pr_labels_succeeds() {
     let platform = Arc::new(MockPlatform::new(common::sample_diff(), pr));
     let ctx = make_ctx(ai, Arc::clone(&platform));
 
-    SpecTool.run(&ctx).await.expect("should handle PR with labels");
+    SpecTool
+        .run(&ctx)
+        .await
+        .expect("should handle PR with labels");
 }
 
 #[tokio::test]
@@ -114,7 +126,7 @@ async fn spec_tool_name() {
 #[tokio::test]
 async fn spec_strips_h1_from_posted_body() {
     let ai = MockAi::with_generate(
-        "# My PR Title\n\n## Overview\nDetails here.\n\n## Open Questions\nNone."
+        "# My PR Title\n\n## Overview\nDetails here.\n\n## Open Questions\nNone.",
     );
     let platform = Arc::new(MockPlatform::new(common::sample_diff(), make_pr_info()));
     let ctx = make_ctx(ai, Arc::clone(&platform));

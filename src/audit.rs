@@ -99,19 +99,37 @@ impl AuditEvent {
 
 fn format_rfc3339(secs: u64) -> String {
     let mut remaining = secs;
-    let seconds = remaining % 60; remaining /= 60;
-    let minutes = remaining % 60; remaining /= 60;
-    let hours = remaining % 24; remaining /= 24;
+    let seconds = remaining % 60;
+    remaining /= 60;
+    let minutes = remaining % 60;
+    remaining /= 60;
+    let hours = remaining % 24;
+    remaining /= 24;
 
     let mut days = remaining as u32;
     let mut year = 1970u32;
     loop {
         let days_in_year = if is_leap(year) { 366 } else { 365 };
-        if days < days_in_year { break; }
+        if days < days_in_year {
+            break;
+        }
         days -= days_in_year;
         year += 1;
     }
-    let month_days: [u32; 12] = [31, if is_leap(year) { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let month_days: [u32; 12] = [
+        31,
+        if is_leap(year) { 29 } else { 28 },
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ];
     let mut month = 0usize;
     while month < 11 && days >= month_days[month] {
         days -= month_days[month];
@@ -119,7 +137,10 @@ fn format_rfc3339(secs: u64) -> String {
     }
     let day = days + 1;
 
-    format!("{year:04}-{month:02}-{day:02}T{hours:02}:{minutes:02}:{seconds:02}Z", month = month + 1)
+    format!(
+        "{year:04}-{month:02}-{day:02}T{hours:02}:{minutes:02}:{seconds:02}Z",
+        month = month + 1
+    )
 }
 
 fn is_leap(year: u32) -> bool {

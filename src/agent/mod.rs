@@ -53,11 +53,19 @@ pub struct AgentMessage {
 
 impl AgentMessage {
     pub fn user(content: impl Into<String>) -> Self {
-        Self { role: MessageRole::User, content: content.into(), tool_name: None }
+        Self {
+            role: MessageRole::User,
+            content: content.into(),
+            tool_name: None,
+        }
     }
 
     pub fn assistant(content: impl Into<String>) -> Self {
-        Self { role: MessageRole::Assistant, content: content.into(), tool_name: None }
+        Self {
+            role: MessageRole::Assistant,
+            content: content.into(),
+            tool_name: None,
+        }
     }
 
     pub fn tool_result(tool_name: impl Into<String>, output: impl Into<String>) -> Self {
@@ -100,11 +108,23 @@ impl AgentToolDef {
             .parameters
             .iter()
             .map(|p| {
-                let req = if p.required { " (required)" } else { " (optional)" };
-                format!("  - `{}` [{}]{}: {}", p.name, p.param_type, req, p.description)
+                let req = if p.required {
+                    " (required)"
+                } else {
+                    " (optional)"
+                };
+                format!(
+                    "  - `{}` [{}]{}: {}",
+                    p.name, p.param_type, req, p.description
+                )
             })
             .collect();
-        format!("- `{}`: {}\n{}", self.name, self.description, params.join("\n"))
+        format!(
+            "- `{}`: {}\n{}",
+            self.name,
+            self.description,
+            params.join("\n")
+        )
     }
 }
 

@@ -76,8 +76,7 @@ impl ClaudeCodeProvider {
     async fn call_cli(&self, system: &str, user: &str) -> Result<String> {
         // Write prompt to a temp file to avoid shell escaping issues
         let prompt = format!("{system}\n\n---\n\n{user}");
-        let tmp = tempfile::NamedTempFile::new()
-            .map_err(MerlinError::Io)?;
+        let tmp = tempfile::NamedTempFile::new().map_err(MerlinError::Io)?;
         tokio::fs::write(tmp.path(), &prompt).await?;
 
         debug!("Invoking claude CLI for prompt ({} chars)", prompt.len());

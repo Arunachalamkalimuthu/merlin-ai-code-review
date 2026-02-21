@@ -120,7 +120,6 @@ impl AiConfig {
     }
 }
 
-
 // ── Review persona ─────────────────────────────────────────────────────────────
 
 /// A named review persona that overrides the default system prompt.
@@ -415,18 +414,41 @@ pub struct RagConfig {
     pub pinecone_host: Option<String>,
 }
 
-fn default_rag_collection() -> String { "merlin".to_string() }
-fn default_embed_model() -> String { "nomic-embed-text".to_string() }
-fn default_ollama_embed_url() -> String { "http://localhost:11434".to_string() }
-fn default_rag_top_k() -> usize { 5 }
-fn default_rag_min_score() -> f32 { 0.70 }
-fn default_rag_chunk_lines() -> usize { 80 }
-fn default_local_rag_path() -> String { "merlin-rag.jsonl".to_string() }
-fn default_qdrant_url() -> String { "http://localhost:6333".to_string() }
-fn default_chroma_url() -> String { "http://localhost:8000".to_string() }
+fn default_rag_collection() -> String {
+    "merlin".to_string()
+}
+fn default_embed_model() -> String {
+    "nomic-embed-text".to_string()
+}
+fn default_ollama_embed_url() -> String {
+    "http://localhost:11434".to_string()
+}
+fn default_rag_top_k() -> usize {
+    5
+}
+fn default_rag_min_score() -> f32 {
+    0.70
+}
+fn default_rag_chunk_lines() -> usize {
+    80
+}
+fn default_local_rag_path() -> String {
+    "merlin-rag.jsonl".to_string()
+}
+fn default_qdrant_url() -> String {
+    "http://localhost:6333".to_string()
+}
+fn default_chroma_url() -> String {
+    "http://localhost:8000".to_string()
+}
 fn default_index_extensions() -> Vec<String> {
-    [".rs", ".py", ".ts", ".js", ".tsx", ".jsx", ".go", ".java", ".kt", ".rb", ".md", ".toml", ".yaml", ".yml"]
-        .iter().map(|s| s.to_string()).collect()
+    [
+        ".rs", ".py", ".ts", ".js", ".tsx", ".jsx", ".go", ".java", ".kt", ".rb", ".md", ".toml",
+        ".yaml", ".yml",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect()
 }
 
 impl Default for RagConfig {
@@ -598,8 +620,7 @@ impl Config {
 
     /// Return the Jira API token from env.
     pub fn jira_token() -> Result<String> {
-        std::env::var("JIRA_TOKEN")
-            .map_err(|_| MerlinError::EnvVar("JIRA_TOKEN".to_string()))
+        std::env::var("JIRA_TOKEN").map_err(|_| MerlinError::EnvVar("JIRA_TOKEN".to_string()))
     }
 
     /// Return the Linear API key from env.
@@ -610,14 +631,12 @@ impl Config {
 
     /// Return the GitHub token from env.
     pub fn github_token() -> Result<String> {
-        std::env::var("GITHUB_TOKEN")
-            .map_err(|_| MerlinError::EnvVar("GITHUB_TOKEN".to_string()))
+        std::env::var("GITHUB_TOKEN").map_err(|_| MerlinError::EnvVar("GITHUB_TOKEN".to_string()))
     }
 
     /// Return the GitLab token from env.
     pub fn gitlab_token() -> Result<String> {
-        std::env::var("GITLAB_TOKEN")
-            .map_err(|_| MerlinError::EnvVar("GITLAB_TOKEN".to_string()))
+        std::env::var("GITLAB_TOKEN").map_err(|_| MerlinError::EnvVar("GITLAB_TOKEN".to_string()))
     }
 
     /// Return the Bitbucket token from env (bearer token or app password).
@@ -636,14 +655,12 @@ impl Config {
 
     /// Return the Gitea token from env.
     pub fn gitea_token() -> Result<String> {
-        std::env::var("GITEA_TOKEN")
-            .map_err(|_| MerlinError::EnvVar("GITEA_TOKEN".to_string()))
+        std::env::var("GITEA_TOKEN").map_err(|_| MerlinError::EnvVar("GITEA_TOKEN".to_string()))
     }
 
     /// Return the Snyk API token from env.
     pub fn snyk_token() -> Result<String> {
-        std::env::var("SNYK_TOKEN")
-            .map_err(|_| MerlinError::EnvVar("SNYK_TOKEN".to_string()))
+        std::env::var("SNYK_TOKEN").map_err(|_| MerlinError::EnvVar("SNYK_TOKEN".to_string()))
     }
 }
 

@@ -30,12 +30,17 @@ impl MerlinTool for TestGenTool {
             .iter()
             .filter(|f| {
                 !is_test_file(f.path())
-                    && f.hunks.iter().any(|h| h.lines.iter().any(|l| l.kind == LineKind::Added))
+                    && f.hunks
+                        .iter()
+                        .any(|h| h.lines.iter().any(|l| l.kind == LineKind::Added))
             })
             .collect();
 
         if changed.is_empty() {
-            return Ok("## Merlin: Test Generation\n\nNo new or modified source files detected.".to_string());
+            return Ok(
+                "## Merlin: Test Generation\n\nNo new or modified source files detected."
+                    .to_string(),
+            );
         }
 
         let system = "You are an expert in test-driven development. \
@@ -76,7 +81,12 @@ impl MerlinTool for TestGenTool {
                     let test_file = block["file"].as_str().unwrap_or("unknown_test");
                     let fns = block["functions_tested"]
                         .as_array()
-                        .map(|a| a.iter().filter_map(|v| v.as_str()).collect::<Vec<_>>().join(", "))
+                        .map(|a| {
+                            a.iter()
+                                .filter_map(|v| v.as_str())
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        })
                         .unwrap_or_default();
                     summary_lines.push(format!("- `{test_file}` — tests for: {fns}"));
                     all_test_blocks.push(block.clone());
@@ -105,7 +115,9 @@ impl MerlinTool for TestGenTool {
             let test_file = block["file"].as_str().unwrap_or("test_file");
             let language = block["language"].as_str().unwrap_or("text");
             let code = block["code"].as_str().unwrap_or("");
-            out.push_str(&format!("### `{test_file}`\n\n```{language}\n{code}\n```\n\n"));
+            out.push_str(&format!(
+                "### `{test_file}`\n\n```{language}\n{code}\n```\n\n"
+            ));
         }
 
         out.push_str(

@@ -25,7 +25,9 @@ pub struct MemoryStore {
 
 impl MemoryStore {
     pub fn new() -> Self {
-        Self { index: RwLock::new(HashMap::new()) }
+        Self {
+            index: RwLock::new(HashMap::new()),
+        }
     }
 }
 

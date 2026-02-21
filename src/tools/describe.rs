@@ -68,7 +68,9 @@ impl MerlinTool for DescribeTool {
             .to_string();
         let new_body = value["description"].as_str().unwrap_or(&raw).to_string();
 
-        ctx.platform.update_description(&new_title, &new_body).await?;
+        ctx.platform
+            .update_description(&new_title, &new_body)
+            .await?;
 
         Ok(format!(
             "## Merlin: PR Description Updated\n\n**New title:** {new_title}\n\n{new_body}"

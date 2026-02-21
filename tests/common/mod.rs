@@ -22,15 +22,24 @@ pub struct MockAi {
 
 impl MockAi {
     pub fn new() -> Self {
-        MockAi { comments: vec![], generate_text: String::new() }
+        MockAi {
+            comments: vec![],
+            generate_text: String::new(),
+        }
     }
 
     pub fn with_generate(text: impl Into<String>) -> Self {
-        MockAi { comments: vec![], generate_text: text.into() }
+        MockAi {
+            comments: vec![],
+            generate_text: text.into(),
+        }
     }
 
     pub fn with_comments(comments: Vec<ReviewComment>) -> Self {
-        MockAi { comments, generate_text: String::new() }
+        MockAi {
+            comments,
+            generate_text: String::new(),
+        }
     }
 }
 
@@ -107,8 +116,7 @@ impl PlatformClient for MockPlatform {
     }
 
     async fn update_description(&self, title: &str, body: &str) -> Result<()> {
-        *self.updated_description.lock().unwrap() =
-            Some((title.to_string(), body.to_string()));
+        *self.updated_description.lock().unwrap() = Some((title.to_string(), body.to_string()));
         Ok(())
     }
 
@@ -121,10 +129,7 @@ impl PlatformClient for MockPlatform {
         Ok(vec![])
     }
 
-    async fn post_code_suggestions(
-        &self,
-        _suggestions: &[InlineCodeSuggestion],
-    ) -> Result<()> {
+    async fn post_code_suggestions(&self, _suggestions: &[InlineCodeSuggestion]) -> Result<()> {
         Ok(())
     }
 
@@ -135,8 +140,7 @@ impl PlatformClient for MockPlatform {
         _message: &str,
         _current_sha: Option<&str>,
     ) -> Result<()> {
-        *self.updated_file.lock().unwrap() =
-            Some((path.to_string(), content.to_string()));
+        *self.updated_file.lock().unwrap() = Some((path.to_string(), content.to_string()));
         Ok(())
     }
 

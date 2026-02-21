@@ -39,7 +39,14 @@ impl BitbucketClient {
         pr_id: u64,
         head_sha: String,
     ) -> Self {
-        Self { auth, workspace, repo_slug, pr_id, head_sha, client: reqwest::Client::new() }
+        Self {
+            auth,
+            workspace,
+            repo_slug,
+            pr_id,
+            head_sha,
+            client: reqwest::Client::new(),
+        }
     }
 
     /// Build from Bitbucket Pipelines environment variables.
@@ -56,7 +63,10 @@ impl BitbucketClient {
             .map_err(|_| MerlinError::EnvVar("BITBUCKET_COMMIT".to_string()))?;
 
         let auth = if let Ok(username) = std::env::var("BITBUCKET_USERNAME") {
-            BitbucketAuth::Basic { username, password: token }
+            BitbucketAuth::Basic {
+                username,
+                password: token,
+            }
         } else {
             BitbucketAuth::Bearer(token)
         };
@@ -202,7 +212,10 @@ impl PlatformClient for BitbucketClient {
 
         let payload = BbCommentBody {
             content: BbContentRaw { raw: &body_text },
-            inline: Some(BbInline { path: &comment.file, to: comment.line }),
+            inline: Some(BbInline {
+                path: &comment.file,
+                to: comment.line,
+            }),
         };
 
         self.add_auth(self.client.post(&url))
@@ -277,7 +290,10 @@ impl PlatformClient for BitbucketClient {
     #[instrument(skip(self))]
     async fn update_description(&self, title: &str, body: &str) -> Result<()> {
         let url = self.repo_url(&format!("pullrequests/{}", self.pr_id));
-        let payload = BbUpdatePr { title, description: body };
+        let payload = BbUpdatePr {
+            title,
+            description: body,
+        };
 
         self.add_auth(self.client.put(&url))
             .json(&payload)
@@ -297,7 +313,11 @@ impl PlatformClient for BitbucketClient {
         warn!("Bitbucket Cloud does not support PR labels; posting as comment");
         let text = format!(
             "**Merlin suggested labels:** {}",
-            labels.iter().map(|l| format!("`{l}`")).collect::<Vec<_>>().join(", ")
+            labels
+                .iter()
+                .map(|l| format!("`{l}`"))
+                .collect::<Vec<_>>()
+                .join(", ")
         );
         self.post_summary(&text).await
     }
@@ -335,14 +355,14 @@ impl PlatformClient for BitbucketClient {
     async fn post_code_suggestions(&self, suggestions: &[InlineCodeSuggestion]) -> Result<()> {
         // Bitbucket has no native suggestion blocks; post as inline comment with code fence.
         for s in suggestions {
-            let body = format!(
-                "{}\n\n```suggestion\n{}\n```",
-                s.description, s.suggestion
-            );
+            let body = format!("{}\n\n```suggestion\n{}\n```", s.description, s.suggestion);
             let url = self.repo_url(&format!("pullrequests/{}/comments", self.pr_id));
             let payload = BbCommentBody {
                 content: BbContentRaw { raw: &body },
-                inline: Some(BbInline { path: &s.file, to: s.end_line }),
+                inline: Some(BbInline {
+                    path: &s.file,
+                    to: s.end_line,
+                }),
             };
             self.add_auth(self.client.post(&url))
                 .json(&payload)

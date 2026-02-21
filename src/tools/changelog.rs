@@ -78,7 +78,11 @@ impl MerlinTool for ChangelogTool {
             format!("{}\n\n{}", existing_content.trim_end(), new_entry)
         };
 
-        let sha_opt = if existing_sha.is_empty() { None } else { Some(existing_sha.as_str()) };
+        let sha_opt = if existing_sha.is_empty() {
+            None
+        } else {
+            Some(existing_sha.as_str())
+        };
         ctx.platform
             .update_file(
                 CHANGELOG_PATH,
@@ -108,5 +112,10 @@ fn chrono_today() -> String {
     let day_of_year = days % 365;
     let month = (day_of_year / 30) + 1;
     let day = (day_of_year % 30) + 1;
-    format!("{:04}-{:02}-{:02}", year.min(9999), month.min(12), day.min(31))
+    format!(
+        "{:04}-{:02}-{:02}",
+        year.min(9999),
+        month.min(12),
+        day.min(31)
+    )
 }

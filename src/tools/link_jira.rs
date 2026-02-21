@@ -54,7 +54,12 @@ impl MerlinTool for LinkJiraTool {
             JiraClient::extract_issue_keys(&search_text, jira_cfg.project_key.as_deref());
 
         // 2. Search for related issues by PR title keywords
-        let keywords: String = pr_info.title.split_whitespace().take(5).collect::<Vec<_>>().join(" ");
+        let keywords: String = pr_info
+            .title
+            .split_whitespace()
+            .take(5)
+            .collect::<Vec<_>>()
+            .join(" ");
         let searched = jira.search_issues(&keywords, 5).await.unwrap_or_default();
 
         let mut out = "## Merlin: Jira Issue Links\n\n".to_string();

@@ -62,7 +62,11 @@ impl MerlinTool for CommitMessageTool {
             for (i, opt) in options.iter().enumerate() {
                 let msg = opt["message"].as_str().unwrap_or("");
                 let breaking = opt["breaking"].as_bool().unwrap_or(false);
-                let breaking_note = if breaking { " ⚠️ **BREAKING CHANGE**" } else { "" };
+                let breaking_note = if breaking {
+                    " ⚠️ **BREAKING CHANGE**"
+                } else {
+                    ""
+                };
                 out.push_str(&format!(
                     "**Option {}**{breaking_note}:\n```\n{msg}\n```\n\n",
                     i + 1

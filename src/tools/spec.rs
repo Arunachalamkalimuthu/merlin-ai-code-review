@@ -59,9 +59,7 @@ impl MerlinTool for SpecTool {
 
         let stats = format!(
             "{} file(s) changed — +{} / -{} lines",
-            pr_info.files_changed,
-            pr_info.additions,
-            pr_info.deletions,
+            pr_info.files_changed, pr_info.additions, pr_info.deletions,
         );
 
         let system = "\

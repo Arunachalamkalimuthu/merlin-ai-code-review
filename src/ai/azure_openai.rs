@@ -33,15 +33,23 @@ pub struct AzureOpenAiProvider {
 
 impl AzureOpenAiProvider {
     pub fn new(api_key: String, config: AiConfig) -> Self {
-        Self { api_key, config, client: reqwest::Client::new() }
+        Self {
+            api_key,
+            config,
+            client: reqwest::Client::new(),
+        }
     }
 
     fn endpoint_url(&self) -> Result<String> {
-        let base = self.config.azure_openai_endpoint.as_deref().ok_or_else(|| {
-            MerlinError::Config(
-                "azure_openai_endpoint is required for azure-openai provider".to_string(),
-            )
-        })?;
+        let base = self
+            .config
+            .azure_openai_endpoint
+            .as_deref()
+            .ok_or_else(|| {
+                MerlinError::Config(
+                    "azure_openai_endpoint is required for azure-openai provider".to_string(),
+                )
+            })?;
         let version = self
             .config
             .azure_openai_api_version
@@ -91,14 +99,23 @@ impl AiProvider for AzureOpenAiProvider {
 
         let request = AzureRequest {
             messages: vec![
-                AzureMessage { role: "system".to_string(), content: system.to_string() },
-                AzureMessage { role: "user".to_string(), content: user.to_string() },
+                AzureMessage {
+                    role: "system".to_string(),
+                    content: system.to_string(),
+                },
+                AzureMessage {
+                    role: "user".to_string(),
+                    content: user.to_string(),
+                },
             ],
             max_tokens: self.config.max_tokens,
             temperature: self.config.temperature,
         };
 
-        debug!("Sending request to Azure OpenAI deployment: {}", self.config.model);
+        debug!(
+            "Sending request to Azure OpenAI deployment: {}",
+            self.config.model
+        );
 
         let resp = self
             .client
@@ -128,17 +145,22 @@ impl AiProvider for AzureOpenAiProvider {
     #[instrument(skip(self, ctx), fields(file = %ctx.file))]
     async fn review(&self, ctx: &ReviewContext) -> Result<Vec<ReviewComment>> {
         let system = system_prompt(&[
-            "bugs".to_string(), "security".to_string(),
-            "style".to_string(), "performance".to_string(),
+            "bugs".to_string(),
+            "security".to_string(),
+            "style".to_string(),
+            "performance".to_string(),
         ]);
         let user = format!(
             "Review the following diff for file `{}`:\n\n```diff\n{}\n```",
             ctx.file, ctx.diff_hunk
         );
         let raw = self.generate(&system, &user).await?;
-        let cleaned = raw.trim()
-            .trim_start_matches("```json").trim_start_matches("```")
-            .trim_end_matches("```").trim();
+        let cleaned = raw
+            .trim()
+            .trim_start_matches("```json")
+            .trim_start_matches("```")
+            .trim_end_matches("```")
+            .trim();
         serde_json::from_str(cleaned).map_err(|e| {
             MerlinError::AiProvider(format!(
                 "Failed to parse Azure OpenAI response: {e}\nRaw: {cleaned}"

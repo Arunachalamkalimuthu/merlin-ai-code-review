@@ -30,7 +30,11 @@ pub struct PineconeStore {
 
 impl PineconeStore {
     pub fn new(api_key: Option<String>, host: Option<String>) -> Self {
-        Self { api_key, host, client: reqwest::Client::new() }
+        Self {
+            api_key,
+            host,
+            client: reqwest::Client::new(),
+        }
     }
 
     fn host_url(&self) -> Result<&str> {
@@ -45,9 +49,9 @@ impl PineconeStore {
     }
 
     fn auth(&self) -> Result<String> {
-        self.api_key.clone().ok_or_else(|| {
-            MerlinError::EnvVar("PINECONE_API_KEY".to_string())
-        })
+        self.api_key
+            .clone()
+            .ok_or_else(|| MerlinError::EnvVar("PINECONE_API_KEY".to_string()))
     }
 
     fn req(&self, method: reqwest::Method, path: &str) -> Result<reqwest::RequestBuilder> {
@@ -181,8 +185,7 @@ impl VectorStore for PineconeStore {
             .filter_map(|m| {
                 let meta = m.metadata?;
                 let content = meta["content"].as_str()?.to_string();
-                let source =
-                    meta["source"].as_str().unwrap_or("unknown").to_string();
+                let source = meta["source"].as_str().unwrap_or("unknown").to_string();
                 Some(RetrievedDoc {
                     content,
                     source,

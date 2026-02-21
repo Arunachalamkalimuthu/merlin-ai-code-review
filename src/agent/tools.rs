@@ -14,22 +14,64 @@ use crate::tools::{route_command, ToolContext};
 /// Return the full set of built-in agent tools.
 pub fn builtin_tools() -> Vec<Arc<dyn AgentTool>> {
     let slash_no_arg: &[(&str, &str)] = &[
-        ("review",           "Run a full AI code review on the current PR/MR and post inline comments."),
-        ("describe",         "Generate and post a description for the PR/MR based on the diff."),
-        ("security",         "Run a dedicated security analysis on the PR changes."),
-        ("snyk",             "Scan changed dependencies against the Snyk vulnerability database."),
-        ("coverage",         "Analyse test coverage for the files changed in this PR."),
-        ("link_jira",        "Find related Jira issues and link them to the PR as a comment."),
-        ("link_linear",      "Find related Linear issues and link them to the PR as a comment."),
-        ("generate_labels",  "Generate appropriate labels for the PR based on the changes."),
-        ("commit_message",   "Generate a conventional commit message for the PR changes."),
-        ("update_changelog", "Update CHANGELOG.md with an entry for this PR."),
-        ("test",             "Generate unit tests for the changed code."),
-        ("docs",             "Generate or update documentation for the changed code."),
-        ("approve",          "Approve the PR if no blocking issues are found."),
-        ("triage",           "Find similar open issues on CodeTriage for the changed packages."),
-        ("similar_issue",    "Find issues in the same repo that are similar to this PR."),
-        ("spec",             "Generate a comprehensive technical specification and update the PR description."),
+        (
+            "review",
+            "Run a full AI code review on the current PR/MR and post inline comments.",
+        ),
+        (
+            "describe",
+            "Generate and post a description for the PR/MR based on the diff.",
+        ),
+        (
+            "security",
+            "Run a dedicated security analysis on the PR changes.",
+        ),
+        (
+            "snyk",
+            "Scan changed dependencies against the Snyk vulnerability database.",
+        ),
+        (
+            "coverage",
+            "Analyse test coverage for the files changed in this PR.",
+        ),
+        (
+            "link_jira",
+            "Find related Jira issues and link them to the PR as a comment.",
+        ),
+        (
+            "link_linear",
+            "Find related Linear issues and link them to the PR as a comment.",
+        ),
+        (
+            "generate_labels",
+            "Generate appropriate labels for the PR based on the changes.",
+        ),
+        (
+            "commit_message",
+            "Generate a conventional commit message for the PR changes.",
+        ),
+        (
+            "update_changelog",
+            "Update CHANGELOG.md with an entry for this PR.",
+        ),
+        ("test", "Generate unit tests for the changed code."),
+        (
+            "docs",
+            "Generate or update documentation for the changed code.",
+        ),
+        ("approve", "Approve the PR if no blocking issues are found."),
+        (
+            "triage",
+            "Find similar open issues on CodeTriage for the changed packages.",
+        ),
+        (
+            "similar_issue",
+            "Find issues in the same repo that are similar to this PR.",
+        ),
+        (
+            "spec",
+            "Generate a comprehensive technical specification and update the PR description.",
+        ),
     ];
 
     let mut tools: Vec<Arc<dyn AgentTool>> = slash_no_arg
@@ -56,7 +98,8 @@ pub fn builtin_tools() -> Vec<Arc<dyn AgentTool>> {
         tool_name: "improve".to_string(),
         description: "Suggest improvements for a specific part of the code.".to_string(),
         param_name: "focus",
-        param_description: "Optional: what aspect to improve (e.g. 'error handling', 'performance').",
+        param_description:
+            "Optional: what aspect to improve (e.g. 'error handling', 'performance').",
     }));
     tools.push(Arc::new(SlashArgTool {
         command: "/explain".to_string(),
@@ -132,11 +175,7 @@ impl AgentTool for SlashArgTool {
 
 // ── Common slash command dispatch ─────────────────────────────────────────────
 
-async fn run_slash_command(
-    command: &str,
-    arg: Option<String>,
-    ctx: &AgentContext,
-) -> ToolResult {
+async fn run_slash_command(command: &str, arg: Option<String>, ctx: &AgentContext) -> ToolResult {
     let tool = match route_command(command) {
         Ok(t) => t,
         Err(e) => {
@@ -159,11 +198,23 @@ async fn run_slash_command(
         }
     };
 
-    let tool_ctx = ToolContext { ai: ctx.ai.clone(), platform, arg };
+    let tool_ctx = ToolContext {
+        ai: ctx.ai.clone(),
+        platform,
+        arg,
+    };
 
     match tool.run(&tool_ctx).await {
-        Ok(output) => ToolResult { tool_name: command.to_string(), output, success: true },
-        Err(e) => ToolResult { tool_name: command.to_string(), output: e.to_string(), success: false },
+        Ok(output) => ToolResult {
+            tool_name: command.to_string(),
+            output,
+            success: true,
+        },
+        Err(e) => ToolResult {
+            tool_name: command.to_string(),
+            output: e.to_string(),
+            success: false,
+        },
     }
 }
 
@@ -263,9 +314,17 @@ impl AgentTool for GetPrInfoTool {
                         add = info.additions,
                         del = info.deletions,
                         files = info.files_changed,
-                        body = if info.body.is_empty() { "(no description)" } else { &info.body },
+                        body = if info.body.is_empty() {
+                            "(no description)"
+                        } else {
+                            &info.body
+                        },
                     );
-                    ToolResult { tool_name: "get_pr_info".to_string(), output, success: true }
+                    ToolResult {
+                        tool_name: "get_pr_info".to_string(),
+                        output,
+                        success: true,
+                    }
                 }
                 Err(e) => ToolResult {
                     tool_name: "get_pr_info".to_string(),
@@ -327,7 +386,8 @@ impl AgentTool for RagSearchTool {
         if !ctx.config.rag.enabled {
             return ToolResult {
                 tool_name: "rag_search".to_string(),
-                output: "RAG is not enabled. Set `[rag] enabled = true` in merlin.toml.".to_string(),
+                output: "RAG is not enabled. Set `[rag] enabled = true` in merlin.toml."
+                    .to_string(),
                 success: false,
             };
         }
@@ -341,7 +401,11 @@ impl AgentTool for RagSearchTool {
             },
             Ok(docs) => {
                 let output = crate::rag::retriever::format_rag_context(&docs);
-                ToolResult { tool_name: "rag_search".to_string(), output, success: true }
+                ToolResult {
+                    tool_name: "rag_search".to_string(),
+                    output,
+                    success: true,
+                }
             }
             Err(e) => ToolResult {
                 tool_name: "rag_search".to_string(),
@@ -372,7 +436,11 @@ mod tests {
     fn test_all_tools_have_non_empty_description() {
         for tool in builtin_tools() {
             let def = tool.definition();
-            assert!(!def.description.is_empty(), "Tool '{}' has empty description", def.name);
+            assert!(
+                !def.description.is_empty(),
+                "Tool '{}' has empty description",
+                def.name
+            );
         }
     }
 
@@ -382,6 +450,9 @@ mod tests {
         let tool = PostCommentTool;
         let def = tool.definition();
         assert_eq!(def.name, "post_comment");
-        assert!(def.parameters.iter().any(|p| p.name == "body" && p.required));
+        assert!(def
+            .parameters
+            .iter()
+            .any(|p| p.name == "body" && p.required));
     }
 }

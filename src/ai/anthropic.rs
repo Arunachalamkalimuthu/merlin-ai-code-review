@@ -45,7 +45,11 @@ pub struct AnthropicProvider {
 impl AnthropicProvider {
     /// Create a new provider with the given API key and configuration.
     pub fn new(api_key: String, config: AiConfig) -> Self {
-        Self { api_key, config, client: reqwest::Client::new() }
+        Self {
+            api_key,
+            config,
+            client: reqwest::Client::new(),
+        }
     }
 }
 
@@ -95,7 +99,10 @@ impl AiProvider for AnthropicProvider {
             max_tokens: self.config.max_tokens,
             temperature: self.config.temperature,
             system: system.to_string(),
-            messages: vec![Message { role: "user".to_string(), content: user.to_string() }],
+            messages: vec![Message {
+                role: "user".to_string(),
+                content: user.to_string(),
+            }],
         };
 
         let response = self
@@ -111,7 +118,9 @@ impl AiProvider for AnthropicProvider {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(MerlinError::AiProvider(format!("Anthropic API {status}: {body}")));
+            return Err(MerlinError::AiProvider(format!(
+                "Anthropic API {status}: {body}"
+            )));
         }
 
         let api_response: AnthropicResponse = response.json().await?;
@@ -135,7 +144,10 @@ impl AiProvider for AnthropicProvider {
             max_tokens: self.config.max_tokens,
             temperature: self.config.temperature,
             system: system_prompt(&self.config.review_focus()),
-            messages: vec![Message { role: "user".to_string(), content: user_content }],
+            messages: vec![Message {
+                role: "user".to_string(),
+                content: user_content,
+            }],
         };
 
         debug!(file = %ctx.file, "Sending review request to Anthropic");
@@ -153,7 +165,9 @@ impl AiProvider for AnthropicProvider {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(MerlinError::AiProvider(format!("Anthropic API {status}: {body}")));
+            return Err(MerlinError::AiProvider(format!(
+                "Anthropic API {status}: {body}"
+            )));
         }
 
         let api_response: AnthropicResponse = response.json().await?;
@@ -169,7 +183,9 @@ fn extract_text(response: AnthropicResponse) -> Result<String> {
         .into_iter()
         .find(|b| b.block_type == "text")
         .and_then(|b| b.text)
-        .ok_or_else(|| MerlinError::AiProvider("No text content block in Anthropic response".to_string()))
+        .ok_or_else(|| {
+            MerlinError::AiProvider("No text content block in Anthropic response".to_string())
+        })
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -194,6 +210,8 @@ mod tests {
 
     #[test]
     fn parse_with_markdown_fence() {
-        assert!(parse_review_response("```json\n[]\n```").unwrap().is_empty());
+        assert!(parse_review_response("```json\n[]\n```")
+            .unwrap()
+            .is_empty());
     }
 }
