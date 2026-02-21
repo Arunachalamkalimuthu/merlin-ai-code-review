@@ -1,4 +1,7 @@
 name: Merlin AI Code Review
+# Copy this file to your own repo's .github/workflows/ directory.
+# Set the following repository secrets:
+#   ANTHROPIC_API_KEY  — your Anthropic API key (or OPENAI_API_KEY for GPT-4o)
 
 on:
   pull_request:
@@ -12,23 +15,35 @@ jobs:
       pull-requests: write
       contents: read
 
+    env:
+      MERLIN_VERSION: latest   # pin to e.g. "v1.2.0" to avoid unexpected changes
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Download Merlin
+      # Cache the binary so repeated runs don't download every time
+      - name: Cache Merlin binary
+        id: cache-merlin
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/merlin
+          key: merlin-${{ env.MERLIN_VERSION }}-linux-amd64
+
+      - name: Install Merlin
+        if: steps.cache-merlin.outputs.cache-hit != 'true'
         run: |
+          mkdir -p ~/.local/bin
           curl -fsSL \
-            https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest/download/merlin-linux-amd64 \
-            -o merlin
-          chmod +x merlin
+            https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest/download/install.sh \
+            | MERLIN_INSTALL_DIR=~/.local/bin sh
 
       - name: Run Merlin Review
+        run: ~/.local/bin/merlin review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Or use OpenAI:
+          # Uncomment for OpenAI instead:
           # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: ./merlin review
