@@ -6,7 +6,7 @@ ARG TARGETARCH
 
 RUN apk add --no-cache ca-certificates
 
-COPY dist/merlin-linux-${TARGETARCH} /usr/local/bin/merlin
+COPY dist/merlin-linux-${TARGETARCH}-musl /usr/local/bin/merlin
 RUN chmod +x /usr/local/bin/merlin
 
 ENTRYPOINT ["/usr/local/bin/merlin"]
