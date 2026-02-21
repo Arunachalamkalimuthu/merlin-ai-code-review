@@ -8,9 +8,9 @@
 *.swp
 *.swo
 
-# Config with secrets (use config.example.toml as template)
-merlin.toml
-ferret.toml
+# Config overrides with local secrets — never commit these
+merlin.local.toml
+merlin.secrets.toml
 
 # RAG data files
 *.jsonl

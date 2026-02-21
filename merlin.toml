@@ -1,0 +1,41 @@
+# Merlin configuration — used when Merlin reviews its own PRs (dogfooding).
+# Copy this file to your own repo and adjust for your stack.
+# Full reference: https://merlin-review.com/docs/configuration/merlin-toml
+
+# ── AI provider ───────────────────────────────────────────────────────────────
+[ai]
+provider    = "anthropic"          # anthropic | openai | claude-code | gemini | bedrock | ollama
+model       = "claude-sonnet-4-6"  # model name for the chosen provider
+max_tokens  = 4096
+temperature = 0.2                  # lower = more deterministic reviews
+
+# ── Review behaviour ──────────────────────────────────────────────────────────
+[review]
+focus        = ["bugs", "security", "style", "performance"]
+max_comments = 25                  # cap inline comments to keep PRs readable
+chunk_lines  = 150                 # lines per diff chunk sent to AI
+reflect      = true                # second AI pass to filter false positives
+
+# Files/patterns to skip entirely (generated files, lock files, etc.)
+ignore_paths = [
+    "target/**",
+    "*.lock",
+    "website/node_modules/**",
+    "website/build/**",
+    "_typos.toml",
+]
+
+# ── RAG (context-aware reviews) ───────────────────────────────────────────────
+[rag]
+enabled          = true
+embedder         = "openai"              # openai (CI) | ollama (local dev)
+embed_model      = "text-embedding-3-small"
+store            = "local"              # local JSONL file — cached in CI
+local_path       = "merlin-rag.jsonl"
+collection       = "merlin"
+top_k            = 5                    # similar docs to inject per diff chunk
+min_score        = 0.72
+chunk_lines      = 80
+index_extensions = [
+    ".rs", ".toml", ".md", ".yml", ".yaml"
+]
