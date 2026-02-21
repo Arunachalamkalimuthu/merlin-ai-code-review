@@ -63,7 +63,7 @@ async fn dashboard_html(
     let rows: String = events
         .iter()
         .rev()
-        .map(|e| {
+        .fold(String::new(), |mut acc, e| {
             let kind = format!("{:?}", e.kind);
             let command = e.command.as_deref().unwrap_or("—");
             let actor = e.actor.as_deref().unwrap_or("—");
@@ -81,13 +81,13 @@ async fn dashboard_html(
                 format!("<td class=\"err\">❌ {error}</td>")
             };
 
-            format!(
+            acc.push_str(&format!(
                 "<tr><td>{ts}</td><td>{kind}</td><td>{command}</td>\
                  <td>{actor}</td><td>{pr}</td>{status_cell}</tr>",
                 ts = e.timestamp,
-            )
-        })
-        .collect();
+            ));
+            acc
+        });
 
     let version = state.version;
     let html = format!(

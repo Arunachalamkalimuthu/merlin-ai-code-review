@@ -250,27 +250,27 @@ async fn admin_html(State(state): State<SharedAdminState>) -> impl IntoResponse 
 
     let rules_rows = rules
         .iter()
-        .map(|r| {
+        .fold(String::new(), |mut acc, r| {
             let enabled = if r.enabled { "✅" } else { "❌" };
             let pattern = r.file_pattern.as_deref().unwrap_or("*");
-            format!(
+            acc.push_str(&format!(
                 "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td>\
                  <td><button onclick=\"deleteRule('{id}')\" class=\"del\">🗑</button></td></tr>",
                 r.name, r.instruction, r.severity, pattern, enabled,
                 id = r.id
-            )
-        })
-        .collect::<String>();
+            ));
+            acc
+        });
 
     let users_rows = users
         .iter()
-        .map(|u| {
-            format!(
+        .fold(String::new(), |mut acc, u| {
+            acc.push_str(&format!(
                 "<tr><td>{}</td><td>{:?}</td><td>{}</td></tr>",
                 u.identity, u.role, u.added_at
-            )
-        })
-        .collect::<String>();
+            ));
+            acc
+        });
 
     Html(format!(r#"<!DOCTYPE html>
 <html lang="en">
