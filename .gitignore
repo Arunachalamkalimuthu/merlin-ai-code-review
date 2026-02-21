@@ -1,0 +1,27 @@
+# Build artifacts
+/target/
+**/*.rlib
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Config with secrets (use config.example.toml as template)
+merlin.toml
+ferret.toml
+
+# RAG data files
+*.jsonl
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Node (ferret-site)
+node_modules/
+.next/
+dist/
