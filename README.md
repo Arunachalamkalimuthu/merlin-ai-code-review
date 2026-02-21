@@ -1,12 +1,16 @@
 # Merlin 🧙
 
-[![CI](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/actions/workflows/ci.yml/badge.svg)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/actions/workflows/ci.yml)
-[![Release](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/actions/workflows/release.yml/badge.svg)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/actions/workflows/release.yml)
-[![Latest Release](https://img.shields.io/github/v/release/Arunachalamkalimuthu/merlin-ai-code-review?color=f78166&label=latest)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/blob/main/LICENSE)
-[![Rust](https://img.shields.io/badge/built%20with-Rust-dea584?logo=rust)](https://www.rust-lang.org/)
-[![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ed?logo=docker)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/pkgs/container/merlin-ai-code-review)
-[![Docs](https://img.shields.io/badge/docs-merlin--review.com-f78166)](https://merlin-review.com/)
+[![CI](https://img.shields.io/github/actions/workflow/status/Arunachalamkalimuthu/merlin-ai-code-review/ci.yml?branch=main&label=CI&logo=github&style=flat-square)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/actions/workflow/status/Arunachalamkalimuthu/merlin-ai-code-review/release.yml?label=Release&logo=github&style=flat-square)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/actions/workflows/release.yml)
+[![Latest Release](https://img.shields.io/github/v/release/Arunachalamkalimuthu/merlin-ai-code-review?style=flat-square&color=f78166)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/Arunachalamkalimuthu/merlin-ai-code-review?style=flat-square)](LICENSE)
+[![Built with Rust](https://img.shields.io/badge/built%20with-Rust-dea584?logo=rust&style=flat-square)](https://www.rust-lang.org/)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ed?logo=docker&logoColor=white&style=flat-square)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/pkgs/container/merlin-ai-code-review)
+[![Stars](https://img.shields.io/github/stars/Arunachalamkalimuthu/merlin-ai-code-review?style=flat-square)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/stargazers)
+[![Contributors](https://img.shields.io/github/contributors/Arunachalamkalimuthu/merlin-ai-code-review?style=flat-square)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/graphs/contributors)
+[![Issues](https://img.shields.io/github/issues/Arunachalamkalimuthu/merlin-ai-code-review?style=flat-square)](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/issues)
+[![Known Vulnerabilities](https://snyk.io/test/github/Arunachalamkalimuthu/merlin-ai-code-review/badge.svg?style=flat-square)](https://snyk.io/test/github/Arunachalamkalimuthu/merlin-ai-code-review)
+[![Docs](https://img.shields.io/badge/docs-merlin--review.com-f78166?style=flat-square)](https://merlin-review.com/)
 
 **Self-hosted AI code review for GitHub, GitLab, Bitbucket, Azure DevOps, and Gitea** — open-source, bring-your-own-key, no code leaves your infrastructure.
 
