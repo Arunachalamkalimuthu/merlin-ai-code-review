@@ -10,6 +10,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ---
 
+## [0.1.3] — 2026-02-21
+
+### Added
+
+- **`merlin-ui`** — Ink-powered interactive terminal UI (React for CLIs, used
+  by Claude Code, GitHub Copilot CLI, Cloudflare Wrangler):
+  - `merlin-ui review` — dots spinner while reviewing, then bordered comment
+    cards with severity colours, category tags, file:line location, body text,
+    and green suggestion blocks; summary bar with per-severity emoji counts
+  - `merlin-ui review --diff <file>` — local diff mode
+  - `merlin-ui agent` — full interactive REPL with ink-text-input prompt,
+    scrollable conversation history, magenta response boxes, thinking spinner
+  - `merlin-ui update` — streams `merlin self-update` output live, green ✔ / red ✖
+  - `merlin-ui update --check` — check only, no download
+  - `merlin-ui status` — cyan bordered panel: installed version, binary path,
+    latest release from GitHub, update prompt when outdated
+  - Components: `Header`, `SeverityBadge`, `CommentCard`, `Summary`
+  - Stack: React 18 + Ink 5 + ink-spinner + ink-text-input + execa + meow + TypeScript
+
+---
+
 ## [0.1.2] — 2026-02-21
 
 ### Added
