@@ -276,7 +276,7 @@ async fn admin_html(State(state): State<SharedAdminState>) -> impl IntoResponse 
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Ferret Admin</title>
+  <title>Merlin Admin</title>
   <style>
     body {{ font-family: system-ui, sans-serif; margin: 0; background: #0d1117; color: #e6edf3; }}
     nav {{ background: #161b22; padding: 1rem 2rem; display: flex; gap: 2rem; align-items: center; border-bottom: 1px solid #21262d; }}
@@ -304,7 +304,7 @@ async fn admin_html(State(state): State<SharedAdminState>) -> impl IntoResponse 
 </head>
 <body>
 <nav>
-  <span>🦡 Ferret Admin</span>
+  <span>🦡 Merlin Admin</span>
   <a href="/dashboard">Dashboard</a>
   <a href="/admin">Rules & RBAC</a>
   <a href="/admin/config">Config</a>

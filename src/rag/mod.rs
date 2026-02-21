@@ -32,8 +32,8 @@
 //!
 //! ```bash
 //! ollama pull nomic-embed-text   # one-time
-//! ferret rag index               # index your codebase
-//! ferret rag search "auth bypass"  # test retrieval
+//! merlin rag index               # index your codebase
+//! merlin rag search "auth bypass"  # test retrieval
 //! ```
 
 pub mod embedder;

@@ -71,7 +71,7 @@ impl MerlinTool for DescribeTool {
         ctx.platform.update_description(&new_title, &new_body).await?;
 
         Ok(format!(
-            "## Ferret: PR Description Updated\n\n**New title:** {new_title}\n\n{new_body}"
+            "## Merlin: PR Description Updated\n\n**New title:** {new_title}\n\n{new_body}"
         ))
     }
 }

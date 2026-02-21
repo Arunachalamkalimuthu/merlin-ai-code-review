@@ -147,7 +147,7 @@ impl AgentRuntime {
         let tools_text = tool_lines.join("\n");
 
         format!(
-            "You are Ferret 🦡, an autonomous AI code review agent. You help developers \
+            "You are Merlin 🦡, an autonomous AI code review agent. You help developers \
              review pull requests, discover security vulnerabilities, analyse code quality, \
              and manage development tasks across GitHub, GitLab, and other platforms.\n\n\
              ## How to call tools\n\n\
@@ -176,7 +176,7 @@ impl AgentRuntime {
                     parts.push(format!("**User:** {}", msg.content));
                 }
                 MessageRole::Assistant => {
-                    parts.push(format!("**Ferret:** {}", msg.content));
+                    parts.push(format!("**Merlin:** {}", msg.content));
                 }
                 MessageRole::Tool => {
                     let name = msg.tool_name.as_deref().unwrap_or("tool");

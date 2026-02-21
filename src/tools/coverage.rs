@@ -4,10 +4,10 @@
 //! line-level coverage for every file touched in the PR diff.
 //!
 //! Usage:
-//!   @ferret /coverage               — uses merlin.toml coverage config
-//!   @ferret /coverage lcov          — force LCOV format
-//!   @ferret /coverage cobertura     — force Cobertura/JaCoCo XML format
-//!   @ferret /coverage json          — force generic JSON format
+//!   @merlin /coverage               — uses merlin.toml coverage config
+//!   @merlin /coverage lcov          — force LCOV format
+//!   @merlin /coverage cobertura     — force Cobertura/JaCoCo XML format
+//!   @merlin /coverage json          — force generic JSON format
 
 use async_trait::async_trait;
 use tracing::info;
@@ -37,9 +37,9 @@ impl MerlinTool for CoverageTool {
             Ok(c) => c,
             Err(e) => {
                 return Ok(format!(
-                    "## Ferret: Coverage\n\n⚠️ Could not read coverage report at `{report_path}`: {e}\n\n\
+                    "## Merlin: Coverage\n\n⚠️ Could not read coverage report at `{report_path}`: {e}\n\n\
                      Make sure to run your test suite with coverage before running `/coverage`.\n\n\
-                     *[Merlin](https://github.com/you/ferret) 🦡*"
+                     *[Merlin](https://github.com/you/merlin) 🦡*"
                 ))
             }
         };
@@ -51,9 +51,9 @@ impl MerlinTool for CoverageTool {
             "json" => parse_json_coverage(&report_content),
             other => {
                 return Ok(format!(
-                    "## Ferret: Coverage\n\n⚠️ Unknown coverage format: `{other}`. \
+                    "## Merlin: Coverage\n\n⚠️ Unknown coverage format: `{other}`. \
                      Supported: `lcov`, `cobertura`, `json`.\n\n\
-                     *[Merlin](https://github.com/you/ferret) 🦡*"
+                     *[Merlin](https://github.com/you/merlin) 🦡*"
                 ))
             }
         };
@@ -63,11 +63,11 @@ impl MerlinTool for CoverageTool {
         let files = parse_diff(&raw_diff)?;
         let changed_paths: Vec<&str> = files.iter().map(|f| f.path()).collect();
 
-        let mut out = "## Ferret: Coverage Analysis\n\n".to_string();
+        let mut out = "## Merlin: Coverage Analysis\n\n".to_string();
 
         if coverage_map.is_empty() {
             out.push_str("⚠️ No coverage data found in the report.\n\n");
-            out.push_str("*[Merlin](https://github.com/you/ferret) 🦡*");
+            out.push_str("*[Merlin](https://github.com/you/merlin) 🦡*");
             return Ok(out);
         }
 
@@ -162,7 +162,7 @@ impl MerlinTool for CoverageTool {
             }
         }
 
-        out.push_str("\n*[Merlin](https://github.com/you/ferret) 🦡*");
+        out.push_str("\n*[Merlin](https://github.com/you/merlin) 🦡*");
         Ok(out)
     }
 }

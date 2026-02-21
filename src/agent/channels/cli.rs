@@ -1,6 +1,6 @@
 //! CLI REPL channel — interactive terminal input/output.
 //!
-//! Reads task lines from stdin, prints Ferret's response to stdout.
+//! Reads task lines from stdin, prints Merlin's response to stdout.
 //! Type `exit` or `quit` (or press Ctrl-D) to end the session.
 
 use async_trait::async_trait;
@@ -18,7 +18,7 @@ impl CliChannel {
     pub fn new() -> Self {
         Self {
             reader: BufReader::new(tokio::io::stdin()),
-            prompt: "ferret> ",
+            prompt: "merlin> ",
         }
     }
 }
@@ -59,6 +59,6 @@ impl AgentChannel for CliChannel {
     }
 
     async fn send(&self, response: &str) {
-        println!("\n🦡 Ferret:\n{response}\n");
+        println!("\n🦡 Merlin:\n{response}\n");
     }
 }

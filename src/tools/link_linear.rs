@@ -22,9 +22,9 @@ impl MerlinTool for LinkLinearTool {
         let api_key = match Config::linear_api_key() {
             Ok(k) => k,
             Err(_) => {
-                return Ok("## Ferret: Linear\n\n⚠️ `LINEAR_API_KEY` not set. \
+                return Ok("## Merlin: Linear\n\n⚠️ `LINEAR_API_KEY` not set. \
                            Please configure your Linear API key to enable this integration.\n\
-                           *[Merlin](https://github.com/you/ferret) 🦡*"
+                           *[Merlin](https://github.com/you/merlin) 🦡*"
                     .to_string())
             }
         };
@@ -46,7 +46,7 @@ impl MerlinTool for LinkLinearTool {
             pr_info.title.split_whitespace().take(5).collect::<Vec<_>>().join(" ");
         let searched = linear.search_issues(&keywords, 5).await.unwrap_or_default();
 
-        let mut out = "## Ferret: Linear Issue Links\n\n".to_string();
+        let mut out = "## Merlin: Linear Issue Links\n\n".to_string();
 
         if !explicit_ids.is_empty() {
             out.push_str(&format!(
@@ -62,7 +62,7 @@ impl MerlinTool for LinkLinearTool {
         out.push_str("### Related Issues (by keyword)\n\n");
         out.push_str(&LinearClient::format_issues_table(&searched));
 
-        out.push_str("\n*[Merlin](https://github.com/you/ferret) 🦡*");
+        out.push_str("\n*[Merlin](https://github.com/you/merlin) 🦡*");
         Ok(out)
     }
 }

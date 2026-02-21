@@ -25,10 +25,10 @@ impl MerlinTool for SnykTool {
         let snyk = match SnykClient::from_env(&snyk_cfg) {
             Ok(c) => c,
             Err(_) => {
-                return Ok("## Ferret: Snyk Vulnerability Scan\n\n\
+                return Ok("## Merlin: Snyk Vulnerability Scan\n\n\
                            ⚠️ `SNYK_TOKEN` not set. Get a free API token at \
                            [snyk.io](https://app.snyk.io/account) and set it as `SNYK_TOKEN`.\n\n\
-                           *[Merlin](https://github.com/you/ferret) 🦡*"
+                           *[Merlin](https://github.com/you/merlin) 🦡*"
                     .to_string())
             }
         };
@@ -38,11 +38,11 @@ impl MerlinTool for SnykTool {
         // 1. Extract package changes from the diff
         let packages = extract_packages_from_diff(&raw_diff);
 
-        let mut out = "## Ferret: Snyk Vulnerability Scan\n\n".to_string();
+        let mut out = "## Merlin: Snyk Vulnerability Scan\n\n".to_string();
 
         if packages.is_empty() {
             out.push_str("No dependency file changes detected in this PR.\n\n");
-            out.push_str("*[Merlin](https://github.com/you/ferret) 🦡*");
+            out.push_str("*[Merlin](https://github.com/you/merlin) 🦡*");
             return Ok(out);
         }
 
@@ -112,7 +112,7 @@ impl MerlinTool for SnykTool {
             }
         }
 
-        out.push_str("*Powered by [Snyk](https://security.snyk.io/) · [Merlin](https://github.com/you/ferret) 🦡*");
+        out.push_str("*Powered by [Snyk](https://security.snyk.io/) · [Merlin](https://github.com/you/merlin) 🦡*");
         Ok(out)
     }
 }

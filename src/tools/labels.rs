@@ -72,8 +72,8 @@ impl MerlinTool for LabelsTool {
 
         let label_list: Vec<String> = labels.iter().map(|l| format!("`{l}`")).collect();
         Ok(format!(
-            "## Ferret: Labels Applied\n\nApplied labels: {}\n\n\
-             *Labeled by [Merlin](https://github.com/you/ferret) 🦡*",
+            "## Merlin: Labels Applied\n\nApplied labels: {}\n\n\
+             *Labeled by [Merlin](https://github.com/you/merlin) 🦡*",
             label_list.join(", ")
         ))
     }

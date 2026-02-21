@@ -12,11 +12,11 @@
 //! ## Message triggers
 //!
 //! The bot responds to messages that:
-//! - Mention the bot (`@Ferret <task>`)
-//! - Start with `ferret ` (case-insensitive)
+//! - Mention the bot (`@Merlin <task>`)
+//! - Start with `merlin ` (case-insensitive)
 //!
 //! ## Usage
-//!   ferret agent --channel discord
+//!   merlin agent --channel discord
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -170,11 +170,11 @@ async fn poll_loop(
                     .unwrap_or(false);
 
                 let lower = msg.content.to_lowercase();
-                let is_triggered = is_mention || lower.starts_with("ferret ");
+                let is_triggered = is_mention || lower.starts_with("merlin ");
 
                 if is_triggered {
                     let content = strip_mention(&msg.content, bot_id.as_deref())
-                        .trim_start_matches("ferret ")
+                        .trim_start_matches("merlin ")
                         .trim()
                         .to_string();
 
@@ -273,7 +273,7 @@ mod tests {
 
     #[test]
     fn test_strip_mention_no_id() {
-        let text = "ferret review please";
+        let text = "merlin review please";
         let stripped = strip_mention(text, None);
         assert_eq!(stripped, text);
     }

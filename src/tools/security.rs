@@ -51,7 +51,7 @@ impl MerlinTool for SecurityTool {
         let ai_findings = run_ai_security_scan(ctx, &files).await;
 
         // 3. Build report
-        let mut out = "## Ferret: Security Scan\n\n".to_string();
+        let mut out = "## Merlin: Security Scan\n\n".to_string();
 
         // Secret findings
         if secrets.is_empty() {
@@ -130,7 +130,7 @@ impl MerlinTool for SecurityTool {
             }
         }
 
-        out.push_str("*Scanned by [Merlin](https://github.com/you/ferret) 🦡*");
+        out.push_str("*Scanned by [Merlin](https://github.com/you/merlin) 🦡*");
         Ok(out)
     }
 }

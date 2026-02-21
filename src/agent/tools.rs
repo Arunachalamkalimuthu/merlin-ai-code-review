@@ -1,4 +1,4 @@
-//! Built-in agent tools — wrap Ferret's existing slash commands and platform
+//! Built-in agent tools — wrap Merlin's existing slash commands and platform
 //! operations as callable `AgentTool` implementations exposed to the LLM.
 
 use std::sync::Arc;
