@@ -44,7 +44,7 @@ pub mod store;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::config::{RagConfig, VectorStoreType};
+use crate::config::{EmbedderType, RagConfig, VectorStoreType};
 use crate::error::Result;
 
 // ── Core types ─────────────────────────────────────────────────────────────────
@@ -168,11 +168,44 @@ impl RagPipeline {
 // ── Factory ────────────────────────────────────────────────────────────────────
 
 /// Build a `RagPipeline` from config.
+///
+/// Embedder selection:
+/// - `embedder = "ollama"` (default) — local Ollama instance
+/// - `embedder = "openai"` — OpenAI Embeddings API, reads `OPENAI_API_KEY`
 pub fn build_pipeline(config: &RagConfig) -> RagPipeline {
-    let emb = Box::new(embedder::OllamaEmbedder::new(
-        config.ollama_base_url.clone(),
-        config.embed_model.clone(),
-    ));
+    let emb: Box<dyn Embedder> = match config.embedder {
+        EmbedderType::Openai => {
+            match embedder::OpenAiEmbedder::from_env(config.embed_model.clone()) {
+                Ok(e) => {
+                    tracing::info!(
+                        "RAG: using OpenAI embedder (model={})",
+                        config.embed_model
+                    );
+                    Box::new(e)
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "RAG: OPENAI_API_KEY not set ({e}), falling back to Ollama embedder"
+                    );
+                    Box::new(embedder::OllamaEmbedder::new(
+                        config.ollama_base_url.clone(),
+                        config.embed_model.clone(),
+                    ))
+                }
+            }
+        }
+        EmbedderType::Ollama => {
+            tracing::debug!(
+                "RAG: using Ollama embedder (url={}, model={})",
+                config.ollama_base_url,
+                config.embed_model
+            );
+            Box::new(embedder::OllamaEmbedder::new(
+                config.ollama_base_url.clone(),
+                config.embed_model.clone(),
+            ))
+        }
+    };
 
     let st: Box<dyn VectorStore> = match config.store {
         VectorStoreType::Local => {
