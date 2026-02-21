@@ -50,6 +50,16 @@ pub enum AiProviderType {
     AzureOpenai,
     /// Amazon Bedrock — Claude models (requires AWS credentials)
     Bedrock,
+    /// Groq — ultra-fast inference for Llama 3, Mixtral, Gemma (requires GROQ_API_KEY)
+    Groq,
+    /// Together AI — hosted open-source models (requires TOGETHER_API_KEY)
+    TogetherAi,
+    /// DeepSeek — DeepSeek Coder / Chat models (requires DEEPSEEK_API_KEY)
+    DeepSeek,
+    /// Mistral AI — Mistral and Codestral models (requires MISTRAL_API_KEY)
+    Mistral,
+    /// OpenRouter — unified gateway to 100+ models (requires OPENROUTER_API_KEY)
+    OpenRouter,
 }
 
 /// AI provider settings — maps to the `[ai]` table in `merlin.toml`.
@@ -71,6 +81,9 @@ pub struct AiConfig {
     pub claude_code_token: Option<String>,
     /// (ollama) Base URL of the Ollama server. Default: http://localhost:11434
     pub ollama_base_url: Option<String>,
+    /// (openai) Override the default OpenAI endpoint. Use this to point the OpenAI
+    /// provider at any OpenAI-compatible API (e.g. a local proxy or custom deployment).
+    pub openai_base_url: Option<String>,
     /// (azure-openai) Full endpoint URL, e.g. https://{resource}.openai.azure.com
     pub azure_openai_endpoint: Option<String>,
     /// (azure-openai) API version, e.g. "2024-02-01"
@@ -100,6 +113,7 @@ impl Default for AiConfig {
             temperature: default_temperature(),
             claude_code_token: None,
             ollama_base_url: None,
+            openai_base_url: None,
             azure_openai_endpoint: None,
             azure_openai_api_version: None,
             bedrock_region: None,
@@ -606,6 +620,36 @@ impl Config {
     pub fn azure_openai_api_key() -> Result<String> {
         std::env::var("AZURE_OPENAI_API_KEY")
             .map_err(|_| MerlinError::EnvVar("AZURE_OPENAI_API_KEY".to_string()))
+    }
+
+    /// Return the Groq API key from env.
+    pub fn groq_api_key() -> Result<String> {
+        std::env::var("GROQ_API_KEY")
+            .map_err(|_| MerlinError::EnvVar("GROQ_API_KEY".to_string()))
+    }
+
+    /// Return the Together AI API key from env.
+    pub fn together_api_key() -> Result<String> {
+        std::env::var("TOGETHER_API_KEY")
+            .map_err(|_| MerlinError::EnvVar("TOGETHER_API_KEY".to_string()))
+    }
+
+    /// Return the DeepSeek API key from env.
+    pub fn deepseek_api_key() -> Result<String> {
+        std::env::var("DEEPSEEK_API_KEY")
+            .map_err(|_| MerlinError::EnvVar("DEEPSEEK_API_KEY".to_string()))
+    }
+
+    /// Return the Mistral AI API key from env.
+    pub fn mistral_api_key() -> Result<String> {
+        std::env::var("MISTRAL_API_KEY")
+            .map_err(|_| MerlinError::EnvVar("MISTRAL_API_KEY".to_string()))
+    }
+
+    /// Return the OpenRouter API key from env.
+    pub fn openrouter_api_key() -> Result<String> {
+        std::env::var("OPENROUTER_API_KEY")
+            .map_err(|_| MerlinError::EnvVar("OPENROUTER_API_KEY".to_string()))
     }
 
     /// Return AWS credentials from env (access key, secret key, optional session token).

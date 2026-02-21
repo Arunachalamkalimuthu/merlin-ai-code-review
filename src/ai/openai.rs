@@ -1,10 +1,11 @@
-//! OpenAI ChatCompletions provider.
+//! OpenAI-compatible ChatCompletions provider.
 //!
-//! Sends requests to `api.openai.com/v1/chat/completions`.
-//! Uses `response_format: json_object` for the review endpoint to encourage
-//! structured output, with fallback parsing for wrapped objects.
+//! Used directly for OpenAI and reused for every OpenAI-compatible endpoint:
+//! Groq, Together AI, DeepSeek, Mistral AI, and OpenRouter.  The base URL and
+//! JSON-mode flag are supplied by [`crate::ai::build_provider`] based on the
+//! configured provider type.
 //!
-//! # Configuration
+//! # Configuration — OpenAI
 //!
 //! ```toml
 //! [ai]
@@ -12,11 +13,27 @@
 //! model       = "gpt-4o"     # or "gpt-4o-mini", "gpt-4-turbo"
 //! max_tokens  = 4096
 //! temperature = 0.2
+//! # openai_base_url = "https://api.openai.com/v1/chat/completions"  # override if needed
 //! ```
 //!
-//! # Required environment variable
+//! # Configuration — Groq (example)
 //!
-//! `OPENAI_API_KEY` — obtain from <https://platform.openai.com/api-keys>.
+//! ```toml
+//! [ai]
+//! provider    = "groq"
+//! model       = "llama-3.3-70b-versatile"
+//! ```
+//!
+//! # Required environment variables
+//!
+//! | Provider | Variable |
+//! |---|---|
+//! | OpenAI | `OPENAI_API_KEY` |
+//! | Groq | `GROQ_API_KEY` |
+//! | Together AI | `TOGETHER_API_KEY` |
+//! | DeepSeek | `DEEPSEEK_API_KEY` |
+//! | Mistral | `MISTRAL_API_KEY` |
+//! | OpenRouter | `OPENROUTER_API_KEY` |
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -27,26 +44,34 @@ use crate::ai::{system_prompt, AiProvider, ReviewComment, ReviewContext};
 use crate::config::AiConfig;
 use crate::error::{MerlinError, Result};
 
-const OPENAI_API_URL: &str = "https://api.openai.com/v1/chat/completions";
-
 // ── Public provider struct ────────────────────────────────────────────────────
 
-/// AI provider backed by the OpenAI Chat Completions API.
+/// AI provider backed by the OpenAI Chat Completions API or any compatible endpoint.
 ///
 /// Construct via [`crate::ai::build_provider`].
 pub struct OpenAiProvider {
     api_key: String,
     config: AiConfig,
     client: reqwest::Client,
+    /// The full chat completions endpoint URL.
+    base_url: String,
+    /// Whether to request `response_format: json_object` on review calls.
+    /// Disable for providers / models that do not support strict JSON mode.
+    json_mode: bool,
 }
 
 impl OpenAiProvider {
     /// Create a new provider.
-    pub fn new(api_key: String, config: AiConfig) -> Self {
+    ///
+    /// * `base_url`  — full chat completions URL (e.g. `https://api.groq.com/openai/v1/chat/completions`)
+    /// * `json_mode` — set to `true` for providers that support `response_format: json_object`
+    pub fn new(api_key: String, config: AiConfig, base_url: String, json_mode: bool) -> Self {
         Self {
             api_key,
             config,
             client: reqwest::Client::new(),
+            base_url,
+            json_mode,
         }
     }
 }
@@ -59,7 +84,10 @@ struct OpenAiRequest {
     max_tokens: u32,
     temperature: f32,
     messages: Vec<ChatMessage>,
-    response_format: ResponseFormat,
+    /// Omitted when `None` — allows use with providers that do not support
+    /// strict JSON mode (Together AI, Mistral, OpenRouter, etc.).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_format: Option<ResponseFormat>,
 }
 
 #[derive(Serialize)]
@@ -104,14 +132,12 @@ impl AiProvider for OpenAiProvider {
                     content: user.to_string(),
                 },
             ],
-            response_format: ResponseFormat {
-                format_type: "text",
-            },
+            response_format: None,
         };
 
         let response = self
             .client
-            .post(OPENAI_API_URL)
+            .post(&self.base_url)
             .bearer_auth(&self.api_key)
             .json(&request)
             .send()
@@ -121,7 +147,7 @@ impl AiProvider for OpenAiProvider {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             return Err(MerlinError::AiProvider(format!(
-                "OpenAI API {status}: {body}"
+                "API error {status}: {body}"
             )));
         }
 
@@ -135,6 +161,16 @@ impl AiProvider for OpenAiProvider {
             "Review the following diff for file `{}`:\n\n```diff\n{}\n```",
             ctx.file, ctx.diff_hunk
         );
+
+        // Request strict JSON output only when the provider supports it.
+        // The response parser handles plain-text JSON responses as well.
+        let response_format = if self.json_mode {
+            Some(ResponseFormat {
+                format_type: "json_object",
+            })
+        } else {
+            None
+        };
 
         let request = OpenAiRequest {
             model: self.config.model.clone(),
@@ -150,17 +186,14 @@ impl AiProvider for OpenAiProvider {
                     content: user_content,
                 },
             ],
-            // json_object mode: model must output valid JSON (may still wrap array)
-            response_format: ResponseFormat {
-                format_type: "json_object",
-            },
+            response_format,
         };
 
-        debug!(file = %ctx.file, "Sending review request to OpenAI");
+        debug!(file = %ctx.file, "Sending review request to {}", self.base_url);
 
         let response = self
             .client
-            .post(OPENAI_API_URL)
+            .post(&self.base_url)
             .bearer_auth(&self.api_key)
             .json(&request)
             .send()
@@ -170,7 +203,7 @@ impl AiProvider for OpenAiProvider {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             return Err(MerlinError::AiProvider(format!(
-                "OpenAI API {status}: {body}"
+                "API error {status}: {body}"
             )));
         }
 

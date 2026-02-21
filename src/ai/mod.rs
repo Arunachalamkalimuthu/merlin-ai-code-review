@@ -257,7 +257,55 @@ pub fn build_provider(cfg: &AiConfig) -> Result<Box<dyn AiProvider>> {
         }
         AiProviderType::Openai => {
             let key = Config::openai_api_key()?;
-            Ok(Box::new(openai::OpenAiProvider::new(key, cfg.clone())))
+            let base_url = cfg.openai_base_url.clone().unwrap_or_else(|| {
+                "https://api.openai.com/v1/chat/completions".to_string()
+            });
+            Ok(Box::new(openai::OpenAiProvider::new(key, cfg.clone(), base_url, true)))
+        }
+        AiProviderType::Groq => {
+            let key = Config::groq_api_key()?;
+            Ok(Box::new(openai::OpenAiProvider::new(
+                key,
+                cfg.clone(),
+                "https://api.groq.com/openai/v1/chat/completions".to_string(),
+                true, // Groq supports json_object for Llama 3 / Mixtral
+            )))
+        }
+        AiProviderType::TogetherAi => {
+            let key = Config::together_api_key()?;
+            Ok(Box::new(openai::OpenAiProvider::new(
+                key,
+                cfg.clone(),
+                "https://api.together.xyz/v1/chat/completions".to_string(),
+                false, // JSON mode support varies per model on Together AI
+            )))
+        }
+        AiProviderType::DeepSeek => {
+            let key = Config::deepseek_api_key()?;
+            Ok(Box::new(openai::OpenAiProvider::new(
+                key,
+                cfg.clone(),
+                "https://api.deepseek.com/chat/completions".to_string(),
+                true, // DeepSeek supports json_object mode
+            )))
+        }
+        AiProviderType::Mistral => {
+            let key = Config::mistral_api_key()?;
+            Ok(Box::new(openai::OpenAiProvider::new(
+                key,
+                cfg.clone(),
+                "https://api.mistral.ai/v1/chat/completions".to_string(),
+                false, // Mistral JSON mode varies by model; use text fallback
+            )))
+        }
+        AiProviderType::OpenRouter => {
+            let key = Config::openrouter_api_key()?;
+            Ok(Box::new(openai::OpenAiProvider::new(
+                key,
+                cfg.clone(),
+                "https://openrouter.ai/api/v1/chat/completions".to_string(),
+                false, // JSON mode depends on the underlying routed model
+            )))
         }
         AiProviderType::ClaudeCode => {
             if let Some(ref token) = cfg.claude_code_token {
