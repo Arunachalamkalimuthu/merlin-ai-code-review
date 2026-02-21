@@ -1,0 +1,111 @@
+name: Bug Report
+description: Something isn't working correctly
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please fill in as much detail as possible.
+        For **security vulnerabilities**, please use [private reporting](../security/advisories/new) instead.
+
+  - type: input
+    id: version
+    attributes:
+      label: Merlin version
+      description: Run `merlin --version`
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux (x86_64)
+        - Linux (arm64)
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Windows
+        - Docker
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: VCS platform
+      options:
+        - GitHub
+        - GitLab
+        - Bitbucket
+        - Azure DevOps
+        - Gitea
+        - Local (--diff file)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ai-provider
+    attributes:
+      label: AI provider
+      options:
+        - Anthropic Claude
+        - OpenAI
+        - Claude Code CLI
+        - Google Gemini
+        - AWS Bedrock
+        - Ollama
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Set merlin.toml to ...
+        2. Run `merlin review`
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: merlin.toml (remove any secrets)
+      render: toml
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Run with `RUST_LOG=debug merlin review` and paste the output.
+      render: shell
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched for existing issues and this is not a duplicate
+          required: true
+        - label: I am using the latest release
+          required: true
+        - label: I have removed all API keys and secrets from this report
+          required: true

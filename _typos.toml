@@ -1,0 +1,17 @@
+# typos spell-checker configuration
+# https://github.com/crate-ci/typos
+
+[default.extend-words]
+# Common technical terms that typos flags as misspellings
+"ba" = "ba"          # base64 "ba" in encoded strings
+"nd" = "nd"          # "and" abbreviation in identifiers
+
+[files]
+# Don't spell-check generated files
+extend-exclude = [
+    "target/",
+    "website/node_modules/",
+    "website/build/",
+    "*.lock",
+    "*.jsonl",
+]
