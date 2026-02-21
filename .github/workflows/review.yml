@@ -8,23 +8,24 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  merlin-review:
-    name: AI Code Review
+  # ── Technical specification (runs only when PR is first opened) ────────────────
+  merlin-spec:
+    name: Generate Technical Spec
     runs-on: ubuntu-latest
+    # Only generate the spec on the very first open — not on every push
+    if: github.event.action == 'opened'
     permissions:
       pull-requests: write
       contents: read
 
     env:
-      MERLIN_VERSION: latest   # pin to e.g. "v1.2.0" to avoid unexpected changes
+      MERLIN_VERSION: latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Cache the binary so repeated runs don't download every time
       - name: Cache Merlin binary
         id: cache-merlin
         uses: actions/cache@v4
@@ -40,7 +41,44 @@ jobs:
             https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest/download/install.sh \
             | MERLIN_INSTALL_DIR=~/.local/bin sh
 
-      - name: Run Merlin Review
+      - name: Generate technical specification
+        run: ~/.local/bin/merlin run /spec
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # ── Code review (runs on every push to the PR) ────────────────────────────────
+  merlin-review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    env:
+      MERLIN_VERSION: latest   # pin to e.g. "v1.2.0" to avoid unexpected changes
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Merlin binary
+        id: cache-merlin
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/merlin
+          key: merlin-${{ env.MERLIN_VERSION }}-linux-amd64
+
+      - name: Install Merlin
+        if: steps.cache-merlin.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.local/bin
+          curl -fsSL \
+            https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest/download/install.sh \
+            | MERLIN_INSTALL_DIR=~/.local/bin sh
+
+      - name: Run code review
         run: ~/.local/bin/merlin review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
