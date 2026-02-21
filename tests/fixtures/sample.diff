@@ -1,0 +1,29 @@
+--- a/src/auth.rs
++++ b/src/auth.rs
+@@ -1,15 +1,25 @@
+ use std::collections::HashMap;
+
+-pub fn authenticate(user: &str, password: &str) -> bool {
+-    password == "secret123"
++pub fn authenticate(user: &str, password: &str, db: &HashMap<String, String>) -> bool {
++    db.get(user)
++        .map(|stored| stored == password)
++        .unwrap_or(false)
+ }
+
+-pub fn get_user_data(id: u32) -> String {
+-    format!("SELECT * FROM users WHERE id = {}", id)
++pub fn get_user_data(id: u32, conn: &dyn DatabaseConn) -> Result<User, DbError> {
++    conn.query_one("SELECT id, name, email FROM users WHERE id = $1", &[&id])
+ }
+
++pub fn hash_password(password: &str) -> String {
++    use sha2::{Digest, Sha256};
++    let mut hasher = Sha256::new();
++    hasher.update(password.as_bytes());
++    format!("{:x}", hasher.finalize())
++}
++
+ pub fn logout(session_id: &str) {
+     // TODO: invalidate session
+     drop(session_id);

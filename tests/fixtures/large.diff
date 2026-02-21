@@ -1,0 +1,27 @@
+--- a/src/large_module.rs
++++ b/src/large_module.rs
+@@ -1,10 +1,20 @@
+ use std::collections::HashMap;
++use std::sync::Mutex;
+
+-pub fn process(data: &[u8]) -> Vec<u8> {
+-    data.to_vec()
++lazy_static::lazy_static! {
++    static ref CACHE: Mutex<HashMap<String, Vec<u8>>> = Mutex::new(HashMap::new());
++}
++
++pub fn process(data: &[u8]) -> Vec<u8> {
++    let key = format!("{:?}", &data[..data.len().min(16)]);
++    let mut cache = CACHE.lock().unwrap();
++    if let Some(cached) = cache.get(&key) {
++        return cached.clone();
++    }
++    let result = data.iter().map(|b| b.wrapping_add(1)).collect();
++    cache.insert(key, result.clone());
++    result
+ }
+
+ pub fn validate(input: &str) -> bool {
+-    !input.is_empty()
++    !input.is_empty() && input.len() < 1024
+ }

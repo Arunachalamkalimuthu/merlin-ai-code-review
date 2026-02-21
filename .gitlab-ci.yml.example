@@ -1,0 +1,18 @@
+ferret-review:
+  stage: review
+  image: alpine:3.20
+  before_script:
+    - apk add --no-cache curl ca-certificates
+    - curl -fsSL
+        https://github.com/you/ferret/releases/latest/download/ferret-linux-amd64
+        -o /usr/local/bin/ferret
+    - chmod +x /usr/local/bin/ferret
+  script:
+    - ferret review
+  variables:
+    GITLAB_TOKEN: $CI_JOB_TOKEN
+    ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
+    # Or use OpenAI:
+    # OPENAI_API_KEY: $OPENAI_API_KEY
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"

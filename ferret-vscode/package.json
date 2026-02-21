@@ -1,0 +1,170 @@
+{
+  "name": "merlin-code-review",
+  "displayName": "Merlin Code Review",
+  "description": "AI-powered code review — self-hosted, bring-your-own-key",
+  "version": "0.1.0",
+  "publisher": "merlin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/you/merlin"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Other", "Linters"],
+  "keywords": ["AI", "code review", "Claude", "OpenAI", "Gemini"],
+  "icon": "media/icon.png",
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "merlin.review",
+        "title": "Merlin: Review Current File",
+        "icon": "$(search)"
+      },
+      {
+        "command": "merlin.reviewSelection",
+        "title": "Merlin: Review Selected Code",
+        "icon": "$(search-view-icon)"
+      },
+      {
+        "command": "merlin.explain",
+        "title": "Merlin: Explain This Code",
+        "icon": "$(question)"
+      },
+      {
+        "command": "merlin.improve",
+        "title": "Merlin: Suggest Improvements",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "merlin.security",
+        "title": "Merlin: Security Scan",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "merlin.test",
+        "title": "Merlin: Generate Tests",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "merlin.docs",
+        "title": "Merlin: Generate Docs",
+        "icon": "$(book)"
+      },
+      {
+        "command": "merlin.ask",
+        "title": "Merlin: Ask a Question",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "merlin.configure",
+        "title": "Merlin: Configure",
+        "icon": "$(settings-gear)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "merlin.review",
+          "when": "editorHasSelection",
+          "group": "merlin@1"
+        },
+        {
+          "command": "merlin.explain",
+          "when": "editorHasSelection",
+          "group": "merlin@2"
+        },
+        {
+          "command": "merlin.improve",
+          "when": "editorHasSelection",
+          "group": "merlin@3"
+        },
+        {
+          "command": "merlin.security",
+          "when": "editorHasSelection",
+          "group": "merlin@4"
+        },
+        {
+          "command": "merlin.test",
+          "when": "editorHasSelection",
+          "group": "merlin@5"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "merlin.review",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Merlin",
+      "properties": {
+        "merlin.binaryPath": {
+          "type": "string",
+          "default": "merlin",
+          "description": "Path to the merlin binary. Defaults to 'merlin' (must be on PATH)."
+        },
+        "merlin.configPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to merlin.toml. Defaults to merlin.toml in the workspace root."
+        },
+        "merlin.provider": {
+          "type": "string",
+          "enum": ["anthropic", "openai", "claude-code", "gemini", "ollama", "azure-openai", "bedrock"],
+          "default": "anthropic",
+          "description": "AI provider to use for reviews."
+        },
+        "merlin.model": {
+          "type": "string",
+          "default": "claude-sonnet-4-6",
+          "description": "Model name (provider-specific)."
+        },
+        "merlin.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show Merlin status bar item."
+        },
+        "merlin.autoReviewOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run a quick review when you save a file."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "merlin",
+          "title": "Merlin",
+          "icon": "$(search)"
+        }
+      ]
+    },
+    "views": {
+      "merlin": [
+        {
+          "id": "merlin.resultsView",
+          "name": "Review Results",
+          "type": "webview"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.4.0"
+  }
+}

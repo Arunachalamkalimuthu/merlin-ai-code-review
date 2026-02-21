@@ -1,0 +1,116 @@
+name: Nightly
+
+# Runs every night at 02:00 UTC on main.
+# Builds a "nightly" binary and updates the floating nightly tag.
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:   # allow manual trigger
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: merlin
+
+jobs:
+  # ── Quick sanity check before expensive builds ────────────────────────────────
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/
+            ~/.cargo/git/
+            target/
+          key: nightly-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: cargo test --all-features
+
+  # ── Build Linux amd64 + arm64 nightly binaries ───────────────────────────────
+  build:
+    name: Nightly build (${{ matrix.target }})
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            asset_name: merlin-nightly-linux-amd64
+          - target: aarch64-unknown-linux-musl
+            asset_name: merlin-nightly-linux-arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/
+            ~/.cargo/git/
+            target/
+          key: nightly-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - run: cross build --release --target ${{ matrix.target }}
+
+      - name: Package
+        run: |
+          cp target/${{ matrix.target }}/release/${{ env.BINARY_NAME }} ${{ matrix.asset_name }}
+          sha256sum ${{ matrix.asset_name }} > ${{ matrix.asset_name }}.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: |
+            ${{ matrix.asset_name }}
+            ${{ matrix.asset_name }}.sha256
+
+  # ── Publish nightly GitHub release ───────────────────────────────────────────
+  publish:
+    name: Publish nightly
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
+
+      - name: Delete old nightly release
+        run: |
+          gh release delete nightly --yes --repo ${{ github.repository }} || true
+          git push origin :refs/tags/nightly || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish nightly release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: "Merlin nightly ($(date -u '+%Y-%m-%d'))"
+          body: |
+            Automated nightly build from `main` at ${{ github.sha }}.
+
+            **These are development builds — not recommended for production.**
+
+            | Asset | Platform |
+            |-------|----------|
+            | merlin-nightly-linux-amd64 | Linux x86_64 (musl, static) |
+            | merlin-nightly-linux-arm64 | Linux arm64 (musl, static) |
+          prerelease: true
+          files: dist/**
+          token: ${{ secrets.GITHUB_TOKEN }}
