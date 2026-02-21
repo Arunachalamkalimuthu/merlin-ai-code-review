@@ -10,6 +10,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ---
 
+## [0.1.5] — 2026-02-21
+
+### Fixed
+
+- **Spell-check** — corrected typos flagged by `typos`: `unparseable` → `unparsable`
+  in `src/error.rs` and `src/diff/parser.rs`; `Clonable` → `Cloneable` in `CONTRIBUTING.md`
+
+---
+
 ## [0.1.4] — 2026-02-21
 
 ### Fixed
