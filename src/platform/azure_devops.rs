@@ -18,7 +18,7 @@ const API_VERSION: &str = "7.1";
 
 pub struct AzureDevOpsClient {
     token: String,
-    /// e.g. "https://dev.azure.com/myorg"
+    /// e.g. `https://dev.azure.com/myorg`
     org_url: String,
     project: String,
     repo_id: String,

@@ -191,7 +191,7 @@ impl Default for ReviewConfig {
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct JiraConfig {
-    /// Base URL of your Jira instance, e.g. https://company.atlassian.net
+    /// Base URL of your Jira instance, e.g. `https://company.atlassian.net`
     pub base_url: Option<String>,
     /// Jira project key to search in, e.g. "PROJ"
     pub project_key: Option<String>,
@@ -410,7 +410,7 @@ pub struct RagConfig {
     // ── Pinecone ──────────────────────────────────────────────────────────────
     /// Pinecone API key (from PINECONE_API_KEY env var or here).
     pub pinecone_api_key: Option<String>,
-    /// Pinecone index host URL (e.g. "https://my-index-xyz.svc.us-east1.pinecone.io").
+    /// Pinecone index host URL (e.g. `https://my-index-xyz.svc.us-east1.pinecone.io`).
     pub pinecone_host: Option<String>,
 }
 
