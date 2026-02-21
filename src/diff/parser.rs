@@ -110,7 +110,7 @@ impl FileDiff {
 /// # Errors
 ///
 /// Returns [`crate::error::MerlinError::DiffParse`] if a hunk header (`@@ … @@`)
-/// is malformed or contains unparseable range values.
+/// is malformed or contains unparsable range values.
 pub fn parse_diff(input: &str) -> Result<Vec<FileDiff>> {
     let mut files: Vec<FileDiff> = Vec::new();
     let mut current: Option<FileDiff> = None;
