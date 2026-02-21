@@ -10,6 +10,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ---
 
+## [0.1.2] — 2026-02-21
+
+### Added
+
+- **`merlin self-update`** — self-update command that downloads and installs the
+  latest release binary for the current platform automatically:
+  - Queries the GitHub Releases API for the latest version
+  - Compares against the running version (semver-aware, ignores pre-release suffixes)
+  - Downloads the platform-correct binary (`darwin-arm64`, `darwin-amd64`,
+    `linux-amd64-musl`, `linux-arm64-musl`, `windows-amd64.exe`)
+  - Verifies the SHA-256 checksum before replacing the binary
+  - Atomically replaces the running executable via rename (safe on all platforms)
+  - `merlin self-update --check` — check for updates without downloading
+  - `merlin self-update --force` — re-install even if already on the latest version
+  - `merlin update` — alias for `merlin self-update`
+
+---
+
 ## [0.1.1] — 2026-02-21
 
 ### Fixed

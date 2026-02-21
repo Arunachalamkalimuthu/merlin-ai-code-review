@@ -103,4 +103,5 @@ pub mod platform;
 pub mod rag;
 pub mod review;
 pub mod tools;
+pub mod update;
 pub mod webhook;
