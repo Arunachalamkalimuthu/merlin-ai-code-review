@@ -44,8 +44,9 @@ jobs:
             cross: true
 
           # ── macOS ────────────────────────────────────────────────────────────
+          # macos-13 = last Intel runner; macos-latest = ARM (M-series)
           - target: x86_64-apple-darwin
-            runner: macos-latest
+            runner: macos-13
             asset_name: merlin-darwin-amd64
 
           - target: aarch64-apple-darwin
