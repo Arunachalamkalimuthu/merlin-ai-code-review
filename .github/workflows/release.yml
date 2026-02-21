@@ -44,9 +44,10 @@ jobs:
             cross: true
 
           # ── macOS ────────────────────────────────────────────────────────────
-          # macos-13 = last Intel runner; macos-latest = ARM (M-series)
+          # Both targets run on macos-latest (ARM). x86_64 is cross-compiled;
+          # macOS-13 (Intel) was deprecated by GitHub on 2026-01-30.
           - target: x86_64-apple-darwin
-            runner: macos-13
+            runner: macos-latest
             asset_name: merlin-darwin-amd64
 
           - target: aarch64-apple-darwin
@@ -65,6 +66,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+
+      # Ensure the target is also added to the toolchain selected by
+      # rust-toolchain.toml (which may differ from the stable above)
+      - name: Add target to active toolchain
+        run: rustup target add ${{ matrix.target }}
 
       - name: Cache Cargo
         uses: actions/cache@v4
