@@ -50,8 +50,13 @@ CI pipeline triggers Merlin
   - [Google Gemini](#google-gemini)
   - [AWS Bedrock](#aws-bedrock)
   - [Azure OpenAI](#azure-openai)
-  - [Ollama (local)](#ollama-local--fully-private)
   - [Claude Code CLI](#claude-code-cli)
+  - [Groq](#groq)
+  - [Together AI](#together-ai)
+  - [DeepSeek](#deepseek)
+  - [Mistral AI](#mistral-ai)
+  - [OpenRouter](#openrouter)
+  - [Ollama (local)](#ollama-local--fully-private)
 - [RAG — Context-Aware Reviews](#rag--context-aware-reviews)
 - [Slash Commands](#slash-commands)
 - [Webhook & Bot Mode](#webhook--bot-mode)
@@ -71,7 +76,7 @@ CI pipeline triggers Merlin
 
 | Category | Details |
 |---|---|
-| **AI providers** | Anthropic Claude, OpenAI GPT-4o, Google Gemini, AWS Bedrock, Azure OpenAI, Ollama (local), Claude Code CLI |
+| **AI providers** | Anthropic Claude, OpenAI, Google Gemini, AWS Bedrock, Azure OpenAI, Groq, Together AI, DeepSeek, Mistral AI, OpenRouter, Ollama (local), Claude Code CLI |
 | **VCS platforms** | GitHub, GitLab, Bitbucket, Azure DevOps, Gitea — auto-detected from CI environment |
 | **Slash commands** | 20+ commands triggered from PR comments (`@merlin /review`) or CLI (`merlin run /spec`) |
 | **RAG pipeline** | Index your codebase; reviews include semantically relevant file context |
@@ -586,6 +591,21 @@ This step is optional. `github-actions[bot]` works out of the box with zero conf
 
 Merlin auto-detects which provider to use based on the environment variables present, or you can pin one in `merlin.toml`.
 
+| Provider | `provider` value | Key env var | Notes |
+|---|---|---|---|
+| Anthropic Claude | `anthropic` | `ANTHROPIC_API_KEY` | Default |
+| OpenAI | `openai` | `OPENAI_API_KEY` | GPT-4o, GPT-4o-mini |
+| Google Gemini | `gemini` | `GEMINI_API_KEY` | Gemini 1.5 Pro / Flash |
+| AWS Bedrock | `bedrock` | `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY` | Claude on Bedrock |
+| Azure OpenAI | `azure-openai` | `AZURE_OPENAI_API_KEY` | Custom deployment |
+| Ollama | `ollama` | _(none)_ | Local, fully private |
+| Claude Code CLI | `claude-code` | `CLAUDE_CODE_TOKEN` | No API key needed |
+| **Groq** | `groq` | `GROQ_API_KEY` | Llama 3, Mixtral — ultra-fast |
+| **Together AI** | `together-ai` | `TOGETHER_API_KEY` | 100+ open-source models |
+| **DeepSeek** | `deep-seek` | `DEEPSEEK_API_KEY` | DeepSeek Coder / Chat |
+| **Mistral AI** | `mistral` | `MISTRAL_API_KEY` | Mistral, Codestral |
+| **OpenRouter** | `open-router` | `OPENROUTER_API_KEY` | Gateway to 200+ models |
+
 ### Anthropic Claude (default)
 
 ```toml
@@ -720,7 +740,119 @@ Set `CLAUDE_CODE_TOKEN` as a CI secret. The token is obtained from your Claude C
 
 ---
 
-## RAG — Context-Aware Reviews
+### Groq
+
+Ultra-fast open-source inference. Llama 3.3 70B reviews typically complete in under 3 seconds.
+
+```toml
+[ai]
+provider = "groq"
+model    = "llama-3.3-70b-versatile"   # or mixtral-8x7b-32768, gemma2-9b-it
+```
+
+```bash
+export GROQ_API_KEY=gsk_...
+merlin review
+```
+
+Get a free key at [console.groq.com](https://console.groq.com). Recommended models for code review:
+
+| Model | Context | Speed |
+|---|---|---|
+| `llama-3.3-70b-versatile` | 128k | Fast |
+| `mixtral-8x7b-32768` | 32k | Very fast |
+| `llama-3.1-8b-instant` | 128k | Fastest |
+
+---
+
+### Together AI
+
+Access to 100+ open-source models including Llama, Mistral, Qwen, and DBRX.
+
+```toml
+[ai]
+provider = "together-ai"
+model    = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+```
+
+```bash
+export TOGETHER_API_KEY=...
+merlin review
+```
+
+Get a key at [api.together.ai](https://api.together.ai). Recommended models:
+
+| Model | Notes |
+|---|---|
+| `meta-llama/Llama-3.3-70B-Instruct-Turbo` | Best quality |
+| `meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo` | Smaller, faster |
+| `mistralai/Mixtral-8x7B-Instruct-v0.1` | Strong coding ability |
+| `Qwen/Qwen2.5-Coder-32B-Instruct` | Specialised for code |
+
+---
+
+### DeepSeek
+
+Strong coding-focused models with competitive pricing.
+
+```toml
+[ai]
+provider = "deep-seek"
+model    = "deepseek-coder"   # or deepseek-chat
+```
+
+```bash
+export DEEPSEEK_API_KEY=...
+merlin review
+```
+
+Get a key at [platform.deepseek.com](https://platform.deepseek.com).
+
+---
+
+### Mistral AI
+
+Mistral's own models plus Codestral, which is fine-tuned for code tasks.
+
+```toml
+[ai]
+provider = "mistral"
+model    = "codestral-latest"   # or mistral-large-latest, open-mistral-nemo
+```
+
+```bash
+export MISTRAL_API_KEY=...
+merlin review
+```
+
+Get a key at [console.mistral.ai](https://console.mistral.ai). `codestral-latest` is recommended for code review tasks.
+
+---
+
+### OpenRouter
+
+A unified gateway to 200+ models from OpenAI, Anthropic, Meta, Mistral, Google, and more — including many free tiers.
+
+```toml
+[ai]
+provider = "open-router"
+model    = "meta-llama/llama-3.3-70b-instruct"   # or any model on openrouter.ai/models
+```
+
+```bash
+export OPENROUTER_API_KEY=sk-or-...
+merlin review
+```
+
+Get a key at [openrouter.ai](https://openrouter.ai). Use any model slug from the [model list](https://openrouter.ai/models). OpenRouter is useful for:
+
+- Accessing models not available in your region
+- Comparing multiple providers with a single API key
+- Free-tier access to powerful open-source models
+
+---
+
+### Ollama (local — fully private)
 
 RAG (Retrieval-Augmented Generation) indexes your codebase into a vector store. When reviewing a PR, Merlin retrieves the most relevant files and injects them into the AI prompt — giving the reviewer full context beyond the diff alone.
 

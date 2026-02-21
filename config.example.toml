@@ -3,11 +3,24 @@
 
 [ai]
 # AI provider — choose one:
-#   "anthropic"   — Claude via ANTHROPIC_API_KEY (default)
-#   "openai"      — GPT-4o via OPENAI_API_KEY
-#   "claude-code" — Claude Code CLI (no API key needed; run `claude auth login` once)
-#   "gemini"      — Google Gemini via GEMINI_API_KEY
-#   "ollama"      — Local Ollama instance (no API key required)
+#
+#   Proprietary
+#   "anthropic"    — Claude via ANTHROPIC_API_KEY (default)
+#   "openai"       — GPT-4o via OPENAI_API_KEY
+#   "claude-code"  — Claude Code CLI (no API key needed; run `claude auth login` once)
+#   "gemini"       — Google Gemini via GEMINI_API_KEY
+#   "bedrock"      — Amazon Bedrock via AWS credentials
+#   "azure-openai" — Azure OpenAI via AZURE_OPENAI_API_KEY
+#
+#   Open-source (hosted)
+#   "groq"         — Llama 3 / Mixtral via GROQ_API_KEY (ultra-fast)
+#   "together-ai"  — 100+ open-source models via TOGETHER_API_KEY
+#   "deep-seek"    — DeepSeek Coder / Chat via DEEPSEEK_API_KEY
+#   "mistral"      — Mistral / Codestral via MISTRAL_API_KEY
+#   "open-router"  — 200+ models via OPENROUTER_API_KEY
+#
+#   Self-hosted
+#   "ollama"       — Local Ollama instance (no API key required)
 provider = "anthropic"
 
 # Model to use — override to pin a specific version
