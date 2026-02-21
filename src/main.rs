@@ -15,6 +15,7 @@ use merlin::platform::build_client;
 use merlin::rag::build_pipeline;
 use merlin::review::ReviewEngine;
 use merlin::tools::{route_command, ToolContext};
+use merlin::update;
 use merlin::webhook::{WebhookState, serve};
 
 #[derive(Parser)]
@@ -106,6 +107,18 @@ enum Commands {
         /// Run a single task non-interactively and exit
         #[arg(long)]
         task: Option<String>,
+    },
+
+    /// Update Merlin to the latest release
+    #[command(name = "self-update", alias = "update")]
+    SelfUpdate {
+        /// Check for a new version without downloading
+        #[arg(long)]
+        check: bool,
+
+        /// Download and install even if the version string matches
+        #[arg(long)]
+        force: bool,
     },
 }
 
@@ -293,6 +306,15 @@ async fn run() -> Result<()> {
                     let n = pipeline.count().await?;
                     println!("{n} document(s) indexed in '{}'.", config.rag.collection);
                 }
+            }
+        }
+
+        // ── merlin self-update ───────────────────────────────────────────────
+        Commands::SelfUpdate { check, force } => {
+            if check {
+                update::check_for_update().await?;
+            } else {
+                update::self_update(force).await?;
             }
         }
 
