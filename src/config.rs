@@ -624,8 +624,7 @@ impl Config {
 
     /// Return the Groq API key from env.
     pub fn groq_api_key() -> Result<String> {
-        std::env::var("GROQ_API_KEY")
-            .map_err(|_| MerlinError::EnvVar("GROQ_API_KEY".to_string()))
+        std::env::var("GROQ_API_KEY").map_err(|_| MerlinError::EnvVar("GROQ_API_KEY".to_string()))
     }
 
     /// Return the Together AI API key from env.
