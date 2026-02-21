@@ -5,7 +5,7 @@
 //!
 //! Requires: `SNYK_TOKEN` env var (free Snyk account API token).
 //!
-//! Snyk API docs: https://apidocs.snyk.io/
+//! Snyk API docs: <https://apidocs.snyk.io/>
 //!
 //! # Example merlin.toml
 //! ```toml
@@ -16,7 +16,7 @@
 //!
 //! Usage:
 //!   @merlin /snyk            — scan dependencies in the PR diff
-//!   @merlin /snyk [package]  — look up a specific package
+//!   @merlin /snyk \[package\]  — look up a specific package
 
 use serde::Deserialize;
 use tracing::{debug, warn};

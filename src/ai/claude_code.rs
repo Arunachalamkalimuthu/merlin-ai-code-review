@@ -1,11 +1,11 @@
 //! Claude Code authorization mode.
 //!
-//! When `auth = "claude-code"` is set in [ai] config, Merlin delegates API calls
+//! When `auth = "claude-code"` is set in the `[ai]` config, Merlin delegates API calls
 //! through the `claude` CLI instead of using a raw API key. This lets organizations
 //! use their existing Claude Code subscription without managing separate API keys.
 //!
 //! The `claude` CLI must be installed and authenticated on the host:
-//!   https://claude.ai/claude-code
+//!   <https://claude.ai/claude-code>
 //!
 //! Flow:
 //!   1. Merlin writes the prompt to a temp file

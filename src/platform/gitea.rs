@@ -18,7 +18,7 @@ use crate::error::{MerlinError, Result};
 
 pub struct GiteaClient {
     token: String,
-    /// e.g. "https://gitea.example.com/api/v1"
+    /// e.g. `https://gitea.example.com/api/v1`
     api_base: String,
     owner: String,
     repo: String,

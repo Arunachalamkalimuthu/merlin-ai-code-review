@@ -4,7 +4,7 @@
 //!
 //! - **Token budgeting** — [`prioritize_diffs`] ranks files by security sensitivity
 //!   and drops the least important ones when the total token estimate would exceed
-//!   [`DEFAULT_TOKEN_BUDGET`], keeping AI costs predictable.
+//!   `DEFAULT_TOKEN_BUDGET`, keeping AI costs predictable.
 //! - **PR status** — [`build_pr_status`] combines raw [`crate::platform::PrInfo`]
 //!   with parsed diffs to produce a [`PrStatus`] summary (size label, test coverage
 //!   signal, secrets-risk flag).

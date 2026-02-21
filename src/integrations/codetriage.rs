@@ -1,14 +1,14 @@
 //! CodeTriage integration — surface open issues from CodeTriage for reviewed repos.
 //!
-//! CodeTriage (https://www.codetriage.com/) helps open-source maintainers
+//! CodeTriage (<https://www.codetriage.com/>) helps open-source maintainers
 //! manage their GitHub issue backlog. This integration can:
 //!   1. Look up whether a repository is listed on CodeTriage
 //!   2. Fetch open triaged issues relevant to changed files
 //!   3. Suggest linking new PRs to existing CodeTriage issues
 //!
 //! CodeTriage exposes a public JSON API:
-//!   GET https://www.codetriage.com/{user}/{repo}.json
-//!   GET https://www.codetriage.com/{user}/{repo}/issues.json?page=1
+//!   GET `https://www.codetriage.com/{user}/{repo}.json`
+//!   GET `https://www.codetriage.com/{user}/{repo}/issues.json?page=1`
 //!
 //! No API key required for public repos.
 

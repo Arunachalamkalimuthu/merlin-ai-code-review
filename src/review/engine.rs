@@ -8,7 +8,7 @@
 //! 1. Fetch the raw unified diff from the platform ([`PlatformClient::get_diff`])
 //! 2. Parse into [`Vec<FileDiff>`] ([`crate::diff::parse_diff`])
 //! 3. Compute PR complexity ([`crate::digest::complexity_score`])
-//! 4. Split large files into chunks ([`ReviewEngine::build_contexts`])
+//! 4. Split large files into chunks (`ReviewEngine::build_contexts`)
 //! 5. Fan-out concurrent AI reviews via Tokio [`JoinSet`]
 //! 6. Optionally run a second "Reflect & Review" pass to filter false positives
 //! 7. Deduplicate, sort by severity, cap at [`ReviewConfig::max_comments`]
