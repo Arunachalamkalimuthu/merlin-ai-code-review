@@ -2,83 +2,168 @@
 # Copy the relevant job(s) into your .gitlab-ci.yml
 #
 # Secrets to add in GitLab → Settings → CI/CD → Variables:
-#   ANTHROPIC_API_KEY  — your Anthropic key (or OPENAI_API_KEY)
+#   ANTHROPIC_API_KEY  — Anthropic Claude (or swap for OPENAI_API_KEY / GEMINI_API_KEY)
+#
+# RAG embedding + vector store combinations — pick one section below:
+#   A) OpenAI embeddings  + local JSONL cache  (recommended for most teams)
+#   B) OpenAI embeddings  + Qdrant             (self-hosted, production)
+#   C) OpenAI embeddings  + Pinecone           (managed cloud, zero ops)
+#   D) Ollama embeddings  + local JSONL        (fully private, free — needs Ollama service)
+#   E) No RAG             (fastest, no setup)
 
 stages:
   - review
 
-# ── Merge request review (Docker — recommended) ───────────────────────────────
-# Uses the public GHCR image — no download step needed.
-#
-# RAG index (merlin-rag.jsonl) is cached per-branch so Merlin has codebase
-# context without re-indexing on every run. The first pipeline run on a branch
-# builds the index; subsequent runs load it from cache (fast + no extra tokens).
+# ════════════════════════════════════════════════════════════════════════════════
+# A) OpenAI embeddings + local JSONL (recommended)
+# ════════════════════════════════════════════════════════════════════════════════
+# Requires: OPENAI_API_KEY CI variable
+# merlin.toml in repo root:
+#   [rag]
+#   enabled   = true
+#   embedder  = "openai"
+#   store     = "local"
+#   local_path = "merlin-rag.jsonl"
 
 merlin-review:
   stage: review
   image: ghcr.io/arunachalamkalimuthu/merlin-ai-code-review:latest
 
-  # Cache the RAG index — persists the vector store across pipeline runs.
-  # Without this every run starts with no codebase context.
   cache:
     key: merlin-rag-$CI_DEFAULT_BRANCH
     paths:
-      - merlin-rag.jsonl
+      - merlin-rag.jsonl       # persist the vector store across pipeline runs
 
   script:
     - merlin review
 
   variables:
-    GITLAB_TOKEN: $CI_JOB_TOKEN          # provided automatically — no secret needed
+    GITLAB_TOKEN: $CI_JOB_TOKEN
     ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
-    # Uncomment for OpenAI instead:
-    # OPENAI_API_KEY: $OPENAI_API_KEY
-    # Point Merlin at the cached index file (matches the cache path above):
-    MERLIN_RAG_LOCAL_PATH: merlin-rag.jsonl
+    OPENAI_API_KEY: $OPENAI_API_KEY    # used by the OpenAI embedder
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-# ── Alternative: install-script (no Docker) ───────────────────────────────────
-# Use this if your runner cannot pull from GHCR.
-# The musl binary is fully static — works on any Linux without glibc.
+# ════════════════════════════════════════════════════════════════════════════════
+# B) OpenAI embeddings + Qdrant (self-hosted)
+# ════════════════════════════════════════════════════════════════════════════════
+# No JSONL cache needed — index lives in Qdrant between runs.
+# merlin.toml in repo root:
+#   [rag]
+#   enabled    = true
+#   embedder   = "openai"
+#   store      = "qdrant"
+#   qdrant_url = "http://qdrant:6333"   # service hostname below
+#
+# services:
+#   - name: qdrant/qdrant
+#     alias: qdrant
 #
 # merlin-review:
 #   stage: review
-#   image: alpine:3.20
-#
-#   cache:
-#     - key: merlin-binary-$CI_RUNNER_ID
-#       paths:
-#         - .merlin/
-#     - key: merlin-rag-$CI_DEFAULT_BRANCH
-#       paths:
-#         - merlin-rag.jsonl
-#
-#   before_script:
-#     - apk add --no-cache curl ca-certificates
-#
+#   image: ghcr.io/arunachalamkalimuthu/merlin-ai-code-review:latest
+#   services:
+#     - name: qdrant/qdrant
+#       alias: qdrant
 #   script:
-#     - |
-#       if [ ! -x .merlin/merlin ]; then
-#         mkdir -p .merlin
-#         curl -fsSL \
-#           https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest/download/install.sh \
-#           | MERLIN_INSTALL_DIR=.merlin sh
-#       fi
-#     - .merlin/merlin review
-#
+#     - merlin review
 #   variables:
 #     GITLAB_TOKEN: $CI_JOB_TOKEN
 #     ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
-#     MERLIN_RAG_LOCAL_PATH: merlin-rag.jsonl
-#
+#     OPENAI_API_KEY: $OPENAI_API_KEY
 #   rules:
 #     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-# ── Optional: nightly re-index ────────────────────────────────────────────────
-# Run a full codebase re-index on a schedule so the RAG cache stays fresh.
-# Trigger from GitLab → CI/CD → Schedules (e.g. daily at midnight).
+# ════════════════════════════════════════════════════════════════════════════════
+# C) OpenAI embeddings + Pinecone (managed cloud)
+# ════════════════════════════════════════════════════════════════════════════════
+# No cache, no service — fully managed, index persists in Pinecone.
+# Requires: OPENAI_API_KEY, PINECONE_API_KEY CI variables
+# merlin.toml in repo root:
+#   [rag]
+#   enabled      = true
+#   embedder     = "openai"
+#   store        = "pinecone"
+#   pinecone_host = "https://my-index-xyz.svc.us-east1.pinecone.io"
+#
+# merlin-review:
+#   stage: review
+#   image: ghcr.io/arunachalamkalimuthu/merlin-ai-code-review:latest
+#   script:
+#     - merlin review
+#   variables:
+#     GITLAB_TOKEN: $CI_JOB_TOKEN
+#     ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
+#     OPENAI_API_KEY: $OPENAI_API_KEY
+#     PINECONE_API_KEY: $PINECONE_API_KEY
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# ════════════════════════════════════════════════════════════════════════════════
+# D) Ollama embeddings + local JSONL (fully private, no cloud APIs)
+# ════════════════════════════════════════════════════════════════════════════════
+# Requires: Docker-in-Docker runner (privileged: true)
+# Ollama runs as a GitLab service; embeddings never leave your infra.
+# merlin.toml in repo root:
+#   [ai]
+#   provider         = "ollama"          # use Ollama for code review too (optional)
+#   ollama_base_url  = "http://ollama:11434"
+#   model            = "codellama"
+#
+#   [rag]
+#   enabled          = true
+#   embedder         = "ollama"
+#   store            = "local"
+#   embed_model      = "nomic-embed-text"
+#   ollama_base_url  = "http://ollama:11434"
+#   local_path       = "merlin-rag.jsonl"
+#
+# merlin-review:
+#   stage: review
+#   image: ghcr.io/arunachalamkalimuthu/merlin-ai-code-review:latest
+#   services:
+#     - name: ollama/ollama
+#       alias: ollama
+#   cache:
+#     key: merlin-rag-$CI_DEFAULT_BRANCH
+#     paths:
+#       - merlin-rag.jsonl
+#   before_script:
+#     # Pull the embedding model into the Ollama service before indexing
+#     - apk add --no-cache curl
+#     - curl -fsSL http://ollama:11434/api/pull -d '{"name":"nomic-embed-text"}'
+#   script:
+#     - merlin review
+#   variables:
+#     GITLAB_TOKEN: $CI_JOB_TOKEN
+#     ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY   # still used for review if ai.provider = "anthropic"
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# ════════════════════════════════════════════════════════════════════════════════
+# E) No RAG (fastest — no embeddings, no vector store)
+# ════════════════════════════════════════════════════════════════════════════════
+# merlin.toml in repo root:
+#   [rag]
+#   enabled = false
+#
+# merlin-review:
+#   stage: review
+#   image: ghcr.io/arunachalamkalimuthu/merlin-ai-code-review:latest
+#   script:
+#     - merlin review
+#   variables:
+#     GITLAB_TOKEN: $CI_JOB_TOKEN
+#     ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# ════════════════════════════════════════════════════════════════════════════════
+# Optional: nightly re-index (keep RAG cache fresh)
+# ════════════════════════════════════════════════════════════════════════════════
+# Trigger from GitLab → CI/CD → Schedules (e.g. nightly at midnight).
+# Works with any of the above store configurations.
 #
 # merlin-index:
 #   stage: review
@@ -88,24 +173,41 @@ merlin-review:
 #     paths:
 #       - merlin-rag.jsonl
 #   script:
-#     - merlin index --path .
+#     - merlin rag index .
 #   variables:
 #     ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
-#     MERLIN_RAG_LOCAL_PATH: merlin-rag.jsonl
+#     OPENAI_API_KEY: $OPENAI_API_KEY
 #   rules:
 #     - if: $CI_PIPELINE_SOURCE == "schedule"
 
-# ── Optional: bot webhook mode ────────────────────────────────────────────────
-# Uncomment to run a persistent webhook server that responds to @merlin comments.
+# ════════════════════════════════════════════════════════════════════════════════
+# Optional: install-script alternative (no Docker)
+# ════════════════════════════════════════════════════════════════════════════════
+# Use if your runner cannot pull from GHCR.
+# The musl binary is fully static — works on any Linux without glibc.
 #
-# merlin-bot:
+# merlin-review:
 #   stage: review
-#   image: ghcr.io/arunachalamkalimuthu/merlin-ai-code-review:latest
+#   image: alpine:3.20
+#   cache:
+#     - key: merlin-binary-$CI_RUNNER_ID
+#       paths: [.merlin/]
+#     - key: merlin-rag-$CI_DEFAULT_BRANCH
+#       paths: [merlin-rag.jsonl]
+#   before_script:
+#     - apk add --no-cache curl ca-certificates
+#     - |
+#       if [ ! -x .merlin/merlin ]; then
+#         mkdir -p .merlin
+#         curl -fsSL \
+#           https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest/download/install.sh \
+#           | MERLIN_INSTALL_DIR=.merlin sh
+#       fi
 #   script:
-#     - merlin webhook --port 8080
+#     - .merlin/merlin review
 #   variables:
 #     GITLAB_TOKEN: $CI_JOB_TOKEN
 #     ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY
-#     MERLIN_GITLAB_SECRET: $MERLIN_GITLAB_SECRET   # webhook signing secret
+#     OPENAI_API_KEY: $OPENAI_API_KEY
 #   rules:
-#     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
