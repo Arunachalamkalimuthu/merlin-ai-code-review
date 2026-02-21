@@ -1,113 +1,219 @@
-name: Merlin AI Code Review
-# Copy this file to your own repo's .github/workflows/ directory.
-# Required secrets:
-#   ANTHROPIC_API_KEY  — AI review (or OPENAI_API_KEY for GPT-4o)
-#   OPENAI_API_KEY     — RAG embeddings (optional; omit to skip RAG indexing)
+name: Merlin Self-Review
+
+# Merlin reviews its own pull requests — dogfooding at its finest.
+#
+# Flow:
+#   1. Build Merlin from the PR's source (proves it compiles AND uses latest code)
+#   2. On PR open  → generate a technical spec and set it as the PR description
+#   3. On every push → run a full AI code review + security scan
+#   4. RAG index is cached by source-file hash — rebuilt only when code changes
+#
+# Required repository secrets:
+#   ANTHROPIC_API_KEY  — AI review provider (Claude)
+#   OPENAI_API_KEY     — RAG embeddings (optional; skipped if absent)
+#
+# Note: secrets are not available for PRs from forks.
+# Fork contributors will see the review job skipped — this is safe and expected.
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+concurrency:
+  group: review-${{ github.ref }}
+  cancel-in-progress: true   # cancel stale runs when a new push arrives
+
+permissions:
+  contents: read
+  pull-requests: write       # post inline comments and summaries
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+
 jobs:
-  # ── Technical specification (runs only when PR is first opened) ────────────────
-  merlin-spec:
+  # ── 1. Build Merlin from the PR's own source code ──────────────────────────
+  # Caches the binary by Cargo.lock hash — skips the build on subsequent pushes
+  # to the same branch if dependencies haven't changed.
+  build:
+    name: Build Merlin
+    runs-on: ubuntu-latest
+    outputs:
+      binary-cache-key: ${{ steps.cache-key.outputs.key }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain (pinned via rust-toolchain.toml)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Compute cache key
+        id: cache-key
+        run: echo "key=merlin-bin-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache compiled binary
+        id: cache-bin
+        uses: actions/cache@v4
+        with:
+          path: target/release/merlin
+          key: ${{ steps.cache-key.outputs.key }}
+
+      - name: Cargo dependency cache
+        if: steps.cache-bin.outputs.cache-hit != 'true'
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        if: steps.cache-bin.outputs.cache-hit != 'true'
+        run: cargo build --release --locked
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: merlin-binary
+          path: target/release/merlin
+          retention-days: 1   # only needed for this PR run
+
+  # ── 2. Technical spec — fires once when the PR is first opened ─────────────
+  # Generates a 10-section specification and sets it as the PR description.
+  # Helps reviewers instantly understand the purpose and approach of the PR.
+  spec:
     name: Generate Technical Spec
     runs-on: ubuntu-latest
-    # Only generate the spec on the very first open — not on every push
-    if: github.event.action == 'opened'
-    permissions:
-      pull-requests: write
-      contents: read
-
-    env:
-      MERLIN_VERSION: latest
+    needs: build
+    if: github.event.action == 'opened' && secrets.ANTHROPIC_API_KEY != ''
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0   # full history for accurate diff computation
 
-      - name: Cache Merlin binary
-        id: cache-merlin
-        uses: actions/cache@v4
+      - name: Download Merlin binary
+        uses: actions/download-artifact@v4
         with:
-          path: ~/.local/bin/merlin
-          key: merlin-${{ env.MERLIN_VERSION }}-linux-amd64
+          name: merlin-binary
+          path: /usr/local/bin/
 
-      - name: Install Merlin
-        if: steps.cache-merlin.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p ~/.local/bin
-          curl -fsSL \
-            https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest/download/install.sh \
-            | MERLIN_INSTALL_DIR=~/.local/bin sh
+      - run: chmod +x /usr/local/bin/merlin
 
-      - name: Generate technical specification
-        run: ~/.local/bin/merlin run /spec
+      - name: Generate /spec
+        run: merlin run /spec
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
-  # ── Code review (runs on every push to the PR) ────────────────────────────────
-  merlin-review:
+  # ── 3. Full AI code review — runs on every push to the PR ──────────────────
+  # Posts inline comments on changed lines and a summary comment on the PR.
+  # The RAG index gives Merlin context about the broader codebase — not just
+  # the changed lines — so comments are more accurate and actionable.
+  review:
     name: AI Code Review
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      contents: read
-
-    env:
-      MERLIN_VERSION: latest   # pin to e.g. "v1.2.0" to avoid unexpected changes
+    needs: build
+    if: secrets.ANTHROPIC_API_KEY != ''
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Cache Merlin binary
-        id: cache-merlin
-        uses: actions/cache@v4
+      - name: Download Merlin binary
+        uses: actions/download-artifact@v4
         with:
-          path: ~/.local/bin/merlin
-          key: merlin-${{ env.MERLIN_VERSION }}-linux-amd64
+          name: merlin-binary
+          path: /usr/local/bin/
 
-      - name: Install Merlin
-        if: steps.cache-merlin.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p ~/.local/bin
-          curl -fsSL \
-            https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest/download/install.sh \
-            | MERLIN_INSTALL_DIR=~/.local/bin sh
+      - run: chmod +x /usr/local/bin/merlin
 
-      # ── RAG: cache the code index between runs ─────────────────────────────
-      # The index is rebuilt only when source files change.
-      # Remove this block entirely if you don't need context-aware reviews.
+      # ── RAG: context-aware reviews ────────────────────────────────────────
+      # Cache key = hash of all Rust source files.
+      # Index is rebuilt automatically when source changes; stale index is used
+      # during the rebuild window so the PR still gets context.
       - name: Cache RAG index
         if: secrets.OPENAI_API_KEY != ''
         uses: actions/cache@v4
         with:
           path: merlin-rag.jsonl
-          key: merlin-rag-${{ hashFiles('src/**', 'lib/**', '*.go', '*.py') }}
+          key: merlin-rag-${{ hashFiles('src/**/*.rs', 'Cargo.toml') }}
           restore-keys: merlin-rag-
 
-      - name: Build RAG index (on cache miss)
+      - name: Build RAG index (cache miss)
         if: secrets.OPENAI_API_KEY != ''
         run: |
           if [ ! -f merlin-rag.jsonl ]; then
-            echo "No cached index found — indexing codebase with OpenAI embeddings..."
-            ~/.local/bin/merlin rag index .
+            echo "No cached index — indexing codebase..."
+            merlin rag index .
           else
-            echo "Using cached RAG index."
+            echo "Using cached RAG index ($(merlin rag count) documents)."
           fi
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        # merlin.toml must have: [rag] enabled = true  embedder = "openai"
 
-      # ── AI code review ─────────────────────────────────────────────────────
-      - name: Run code review
-        run: ~/.local/bin/merlin review
+      # ── Run the review ────────────────────────────────────────────────────
+      - name: Run AI review
+        run: merlin review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          # Uncomment to use OpenAI for review instead of Anthropic:
-          # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+  # ── 4. Security-focused review — triggers only on security-sensitive files ──
+  # Runs a dedicated /security scan when the PR touches auth, crypto,
+  # HTTP handling, secrets, or platform client code.
+  security-review:
+    name: Security Review
+    runs-on: ubuntu-latest
+    needs: build
+    if: |
+      secrets.ANTHROPIC_API_KEY != '' && (
+        contains(github.event.pull_request.changed_files, 'src/platform') ||
+        contains(github.event.pull_request.changed_files, 'src/ai') ||
+        contains(github.event.pull_request.changed_files, 'src/webhook') ||
+        contains(github.event.pull_request.changed_files, 'src/config')
+      )
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Merlin binary
+        uses: actions/download-artifact@v4
+        with:
+          name: merlin-binary
+          path: /usr/local/bin/
+
+      - run: chmod +x /usr/local/bin/merlin
+
+      - name: Run /security scan
+        run: merlin run /security
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # ── 5. PR description — update /describe on every sync ─────────────────────
+  # Keeps the PR description current as the diff evolves.
+  # Only runs on synchronize (push) — not on the initial open (spec handles that).
+  describe:
+    name: Update PR Description
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event.action == 'synchronize' && secrets.ANTHROPIC_API_KEY != ''
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Merlin binary
+        uses: actions/download-artifact@v4
+        with:
+          name: merlin-binary
+          path: /usr/local/bin/
+
+      - run: chmod +x /usr/local/bin/merlin
+
+      - name: Update PR description
+        run: merlin run /describe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
