@@ -1,3 +1,25 @@
+//! VCS platform abstraction layer.
+//!
+//! The central abstraction is the [`PlatformClient`] trait.  Every method
+//! that interacts with a VCS platform (fetching diffs, posting comments,
+//! updating labels, reading files) goes through this trait so the rest of
+//! Merlin is platform-agnostic.
+//!
+//! # Supported platforms
+//!
+//! | Platform | Module | Auto-detect env var |
+//! |----------|--------|---------------------|
+//! | GitHub | [`github`] | `GITHUB_ACTIONS=true` |
+//! | GitLab | [`gitlab`] | `GITLAB_CI=true` |
+//! | Bitbucket | [`bitbucket`] | `BITBUCKET_PIPELINE_UUID` |
+//! | Azure DevOps | [`azure_devops`] | `TF_BUILD=True` |
+//! | Gitea | [`gitea`] | `GITEA_ACTIONS=true` |
+//!
+//! Use [`build_client`] to auto-detect the platform from environment
+//! variables and instantiate the correct backend.
+//!
+//! For local / offline mode (e.g. `merlin review --diff file.diff`) use
+//! [`NoOpPlatform`], which silently discards all writes and returns empty reads.
 pub mod azure_devops;
 pub mod bitbucket;
 pub mod gitea;

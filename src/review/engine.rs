@@ -1,3 +1,24 @@
+//! Core review orchestration engine.
+//!
+//! [`ReviewEngine`] ties together the diff parser, AI provider, platform
+//! client, and optional RAG pipeline to execute a complete code review cycle.
+//!
+//! # Review cycle
+//!
+//! 1. Fetch the raw unified diff from the platform ([`PlatformClient::get_diff`])
+//! 2. Parse into [`Vec<FileDiff>`] ([`crate::diff::parse_diff`])
+//! 3. Compute PR complexity ([`crate::digest::complexity_score`])
+//! 4. Split large files into chunks ([`ReviewEngine::build_contexts`])
+//! 5. Fan-out concurrent AI reviews via Tokio [`JoinSet`]
+//! 6. Optionally run a second "Reflect & Review" pass to filter false positives
+//! 7. Deduplicate, sort by severity, cap at [`ReviewConfig::max_comments`]
+//! 8. Post each inline comment and a summary to the platform
+//!
+//! # RAG context injection
+//!
+//! When a [`RagPipeline`] is attached via [`ReviewEngine::with_rag`], each
+//! diff chunk is enriched with the top-K semantically similar documents from
+//! the codebase index before being sent to the AI.
 use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::task::JoinSet;
