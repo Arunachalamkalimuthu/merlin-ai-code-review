@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/security/advisories/new
+    about: Report a security issue privately
+  - name: Documentation
+    url: https://merlin-review.com/
+    about: Read the docs first — your question may already be answered
+  - name: Discussions
+    url: https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/discussions
+    about: Ask a usage question or start a discussion

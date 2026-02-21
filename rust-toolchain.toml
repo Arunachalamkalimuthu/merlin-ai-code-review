@@ -1,0 +1,7 @@
+# Pins the Rust toolchain for reproducible builds.
+# Contributors and CI always use exactly the same compiler.
+# Update this when bumping MSRV or adopting a new stable.
+
+[toolchain]
+channel = "1.85"
+components = ["rustfmt", "clippy", "llvm-tools-preview"]

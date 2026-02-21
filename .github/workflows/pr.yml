@@ -1,0 +1,116 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # ── 1. Conventional commit title ─────────────────────────────────────────────
+  # Enforces: feat:, fix:, docs:, chore:, refactor:, test:, perf:, ci:, style:
+  commit-title:
+    name: PR title lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            chore
+            refactor
+            test
+            perf
+            ci
+            style
+            build
+            revert
+          requireScope: false
+          disallowScopes: []
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            must start with a lowercase letter.
+
+  # ── 2. Auto-label by changed files ───────────────────────────────────────────
+  labeler:
+    name: Auto-label
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
+          sync-labels: true
+
+  # ── 3. PR size label ─────────────────────────────────────────────────────────
+  size-label:
+    name: Size label
+    runs-on: ubuntu-latest
+    steps:
+      - uses: CodelyTV/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_max_size: 10
+          s_max_size: 50
+          m_max_size: 200
+          l_max_size: 500
+          fail_if_xl: false
+
+  # ── 4. Dependency review — block PRs that add vulnerable/unlicensed deps ─────
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-1.0, AGPL-3.0, LGPL-2.0, LGPL-2.1, LGPL-3.0
+
+  # ── 5. CodeQL — static security analysis ─────────────────────────────────────
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: rust
+          queries: security-extended,security-and-quality
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build for CodeQL
+        run: cargo build --all-features
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:rust"
+
+  # ── 6. Stale Cargo.lock check (lockfile must be committed and up-to-date) ────
+  lockfile:
+    name: Lockfile up-to-date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check Cargo.lock is up-to-date
+        run: cargo update --locked 2>&1 | grep -q "Updating" && echo "Cargo.lock is stale — run cargo update" && exit 1 || echo "Cargo.lock is up-to-date"

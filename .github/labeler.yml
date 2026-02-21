@@ -1,0 +1,59 @@
+# Auto-label PRs based on changed files
+# Docs: https://github.com/actions/labeler
+
+"area: ai":
+  - changed-files:
+    - any-glob-to-any-file: "src/ai/**"
+
+"area: platform":
+  - changed-files:
+    - any-glob-to-any-file: "src/platform/**"
+
+"area: rag":
+  - changed-files:
+    - any-glob-to-any-file: "src/rag/**"
+
+"area: agent":
+  - changed-files:
+    - any-glob-to-any-file: "src/agent/**"
+
+"area: slash-commands":
+  - changed-files:
+    - any-glob-to-any-file: "src/tools/**"
+
+"area: diff":
+  - changed-files:
+    - any-glob-to-any-file: "src/diff/**"
+
+"area: config":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "src/config.rs"
+      - "config.example.toml"
+
+"area: webhook":
+  - changed-files:
+    - any-glob-to-any-file: "src/webhook/**"
+
+"area: docs":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "**/*.md"
+      - "website/**"
+      - "docs/**"
+
+"area: ci":
+  - changed-files:
+    - any-glob-to-any-file:
+      - ".github/**"
+      - "Dockerfile"
+
+"area: dependencies":
+  - changed-files:
+    - any-glob-to-any-file:
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+"area: tests":
+  - changed-files:
+    - any-glob-to-any-file: "tests/**"

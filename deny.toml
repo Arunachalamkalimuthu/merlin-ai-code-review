@@ -1,0 +1,92 @@
+# cargo deny configuration
+# Docs: https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "aarch64-unknown-linux-gnu" },
+    { triple = "x86_64-apple-darwin" },
+    { triple = "aarch64-apple-darwin" },
+    { triple = "x86_64-pc-windows-msvc" },
+]
+
+# ── Advisories ────────────────────────────────────────────────────────────────
+[advisories]
+version = 2
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+
+# Unmaintained crates are warned, not denied (too common in the ecosystem)
+unmaintained = "warn"
+
+# Crates marked as unsound get a hard deny
+unsound = "deny"
+
+# Known yanked versions are always denied
+yanked = "deny"
+
+# ── Licences ──────────────────────────────────────────────────────────────────
+[licenses]
+version = 2
+
+# Only allow these licences in the dependency tree
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "CC0-1.0",
+    "Zlib",
+    "OpenSSL",
+]
+
+# Reject any dependency that doesn't declare a licence
+unlicensed = "deny"
+
+# Copyleft licences are not compatible with MIT distribution
+deny = [
+    "GPL-2.0",
+    "GPL-3.0",
+    "AGPL-1.0",
+    "AGPL-3.0",
+    "LGPL-2.0",
+    "LGPL-2.1",
+    "LGPL-3.0",
+]
+
+# Some crates dual-licence; prefer the first match above
+exceptions = []
+
+# ── Bans ─────────────────────────────────────────────────────────────────────
+[bans]
+# Warn on multiple versions of the same crate (bloat + supply chain risk)
+multiple-versions = "warn"
+
+# Deny wildcarded deps (e.g. `dep = "*"`) — unpinned = unpredictable
+wildcards = "deny"
+
+# Ban known problematic crates
+deny = [
+    # openssl — use rustls instead (no system dependency, no linking issues)
+    { crate = "openssl", reason = "Use rustls (reqwest default-features=false + rustls-tls)" },
+    { crate = "openssl-sys", reason = "Use rustls instead of openssl" },
+
+    # unmaintained / deprecated
+    { crate = "failure", reason = "Unmaintained — use thiserror/anyhow instead" },
+    { crate = "error-chain", reason = "Unmaintained — use thiserror/anyhow instead" },
+    { crate = "quick-error", reason = "Use thiserror instead" },
+]
+
+# Allow specific duplicates that are unavoidable (transitive dep version conflicts)
+skip-tree = []
+
+# ── Sources ───────────────────────────────────────────────────────────────────
+[sources]
+# Only allow deps from crates.io (no git deps, no local path deps in published crate)
+unknown-registry = "deny"
+unknown-git = "deny"
+
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
