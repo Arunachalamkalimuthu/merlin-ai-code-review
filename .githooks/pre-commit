@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# pre-commit — runs fast local checks that mirror the CI lint job.
+#
+# Checks run:
+#   1. cargo fmt      — code is formatted
+#   2. cargo clippy   — no warnings (warnings are errors)
+#   3. typos          — no spelling mistakes
+#
+# Install once:  bash scripts/install-hooks.sh
+# Skip once:     git commit --no-verify
+
+set -euo pipefail
+
+RED='\033[0;31m'
+GRN='\033[0;32m'
+YEL='\033[1;33m'
+BLU='\033[0;34m'
+RST='\033[0m'
+
+PASS="${GRN}✔${RST}"
+FAIL="${RED}✘${RST}"
+INFO="${BLU}→${RST}"
+
+echo ""
+echo -e "${BLU}┌─────────────────────────────────────────┐${RST}"
+echo -e "${BLU}│       Merlin pre-commit checks          │${RST}"
+echo -e "${BLU}└─────────────────────────────────────────┘${RST}"
+echo ""
+
+ERRORS=0
+
+# ── Helper ────────────────────────────────────────────────────────────────────
+run_check() {
+    local label="$1"
+    shift
+    echo -e "${INFO} ${label}..."
+    if output=$("$@" 2>&1); then
+        echo -e "${PASS} ${label}"
+    else
+        echo -e "${FAIL} ${label}"
+        echo ""
+        echo -e "${RED}${output}${RST}"
+        echo ""
+        ERRORS=$((ERRORS + 1))
+    fi
+}
+
+# ── 1. Formatting ─────────────────────────────────────────────────────────────
+run_check "cargo fmt (format check)" cargo fmt --all --check
+
+# ── 2. Clippy (warnings = errors) ─────────────────────────────────────────────
+run_check "cargo clippy (lint)" \
+    cargo clippy --all-targets --all-features -- -D warnings
+
+# ── 3. Spell check ────────────────────────────────────────────────────────────
+if command -v typos &>/dev/null; then
+    run_check "typos (spell check)" typos
+else
+    echo -e "${YEL}⚠ typos not installed — skipping spell check${RST}"
+    echo -e "  Install: cargo install typos-cli"
+fi
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+echo ""
+if [ "$ERRORS" -eq 0 ]; then
+    echo -e "${GRN}All pre-commit checks passed.${RST}"
+    echo ""
+    exit 0
+else
+    echo -e "${RED}${ERRORS} check(s) failed. Fix the issues above and try again.${RST}"
+    echo -e "${YEL}To skip hooks for an emergency commit: git commit --no-verify${RST}"
+    echo ""
+    exit 1
+fi

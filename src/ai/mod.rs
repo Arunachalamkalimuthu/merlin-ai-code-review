@@ -257,10 +257,16 @@ pub fn build_provider(cfg: &AiConfig) -> Result<Box<dyn AiProvider>> {
         }
         AiProviderType::Openai => {
             let key = Config::openai_api_key()?;
-            let base_url = cfg.openai_base_url.clone().unwrap_or_else(|| {
-                "https://api.openai.com/v1/chat/completions".to_string()
-            });
-            Ok(Box::new(openai::OpenAiProvider::new(key, cfg.clone(), base_url, true)))
+            let base_url = cfg
+                .openai_base_url
+                .clone()
+                .unwrap_or_else(|| "https://api.openai.com/v1/chat/completions".to_string());
+            Ok(Box::new(openai::OpenAiProvider::new(
+                key,
+                cfg.clone(),
+                base_url,
+                true,
+            )))
         }
         AiProviderType::Groq => {
             let key = Config::groq_api_key()?;

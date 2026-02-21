@@ -67,6 +67,7 @@ CI pipeline triggers Merlin
 - [Troubleshooting](#troubleshooting)
 - [Architecture](#architecture)
 - [Building from Source](#building-from-source)
+- [Local Development — Git Hooks](#local-development--git-hooks)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -1387,12 +1388,57 @@ cargo test
 # Lint
 cargo clippy --all-targets --all-features -- -D warnings
 
+# Format
+cargo fmt --all
+
 # Docker (local build — uses glibc binary)
 docker build -t merlin .
 
 # Docker (CI image — uses musl static binary, requires pre-built dist/)
 docker build -f Dockerfile.ci -t merlin-ci .
 ```
+
+---
+
+## Local Development — Git Hooks
+
+The repository ships pre-commit and pre-push hooks that mirror the CI checks exactly. Install them once after cloning:
+
+```bash
+bash scripts/install-hooks.sh
+```
+
+To also install the required CLI tools (`typos`, `cargo-audit`, `cargo-deny`):
+
+```bash
+bash scripts/install-hooks.sh --tools
+```
+
+### What each hook runs
+
+**`pre-commit`** — fast checks, runs on every `git commit` (~5–10 s):
+
+| Check | Command | What it catches |
+|---|---|---|
+| Format | `cargo fmt --all --check` | Unformatted code |
+| Lint | `cargo clippy --all-targets --all-features -- -D warnings` | Warnings, bad patterns |
+| Spell | `typos` | Typos in source, docs, config |
+
+**`pre-push`** — security checks, runs on every `git push` (~15–30 s):
+
+| Check | Command | What it catches |
+|---|---|---|
+| CVE scan | `cargo audit --deny warnings` | Known vulnerabilities in dependencies |
+| Policy | `cargo deny check` | Licence violations, banned crates, duplicate deps |
+
+### Skipping hooks
+
+```bash
+git commit --no-verify   # skip pre-commit checks
+git push   --no-verify   # skip pre-push checks
+```
+
+Use `--no-verify` only for genuine emergencies. CI will catch any skipped issues.
 
 ---
 
