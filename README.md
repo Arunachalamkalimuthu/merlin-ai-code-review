@@ -22,6 +22,7 @@ Merlin runs in your CI pipeline, reviews pull request diffs with your AI provide
 - [Quick Start](#quick-start)
   - [GitHub Actions](#github-actions)
   - [GitLab CI](#gitlab-ci)
+- [GitHub Permissions & Bot Identity](#github-permissions--bot-identity)
 - [AI Providers](#ai-providers)
 - [RAG — Context-Aware Reviews](#rag--context-aware-reviews)
 - [Slash Commands](#slash-commands)
@@ -107,22 +108,30 @@ Download the binary for your platform directly from the [latest release](https:/
 
 ### GitHub Actions
 
-Add this workflow to your repository — no configuration file needed for a basic review:
+Two equivalent approaches — choose whichever fits your stack.
+
+#### Option A — Binary install (recommended for most repos)
 
 ```yaml
-# .github/workflows/review.yml
+# .github/workflows/merlin-review.yml
+name: Merlin AI Code Review
+
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read        # checkout the repo
+  pull-requests: write  # read PR diff + post inline comments
 
 jobs:
   merlin-review:
+    name: Merlin AI Review
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
 
       - name: Cache RAG index
         uses: actions/cache@v4
@@ -131,7 +140,8 @@ jobs:
           key: merlin-rag-${{ hashFiles('src/**', 'lib/**') }}
           restore-keys: merlin-rag-
 
-      - run: |
+      - name: Run Merlin Review
+        run: |
           curl -fsSL \
             https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/releases/latest/download/install.sh \
             | sh
@@ -142,6 +152,42 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}   # for RAG embeddings
 ```
+
+#### Option B — Docker container (no install step)
+
+```yaml
+# .github/workflows/merlin-review.yml
+name: Merlin AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read        # checkout the repo
+  pull-requests: write  # read PR diff + post inline comments
+
+jobs:
+  merlin-review:
+    name: Merlin AI Review
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/arunachalamkalimuthu/merlin-ai-code-review:latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Merlin Review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: merlin review
+```
+
+> **Note:** The `permissions` block is required. Without it, `GITHUB_TOKEN` defaults to read-only and the GitHub API returns 403 when Merlin tries to fetch the PR diff or post comments.
 
 See the full workflow with auto-spec, security review, and bot mode in [`.github/workflows/review.yml`](.github/workflows/review.yml).
 
@@ -173,6 +219,71 @@ See [`.gitlab-ci.yml.example`](.gitlab-ci.yml.example) for all RAG embedding and
 | **C — Managed cloud** | OpenAI | Pinecone | `OPENAI_API_KEY` + `PINECONE_API_KEY` |
 | **D — Fully private** | Ollama (GitLab service) | Local JSONL (cached) | Privileged runner |
 | **E — No RAG** | — | — | Nothing extra |
+
+---
+
+## GitHub Permissions & Bot Identity
+
+### Required permissions
+
+The workflow **must** declare these permissions so that `GITHUB_TOKEN` can access the pull request API:
+
+```yaml
+permissions:
+  contents: read        # needed by actions/checkout
+  pull-requests: write  # needed to fetch the PR diff and post review comments
+```
+
+Without `pull-requests: write`, GitHub returns `403 Forbidden` when Merlin calls `/repos/{owner}/{repo}/pulls/{n}/files`.
+
+### Who posts the review comments?
+
+| Token used | Comments appear as |
+|---|---|
+| `secrets.GITHUB_TOKEN` (auto-generated) | `github-actions[bot]` |
+| Personal Access Token (PAT) stored as a secret | Your user account |
+| GitHub App token | `your-app-name[bot]` |
+
+**Common mistake:** if comments appear under your personal account name instead of a bot, you are passing a PAT rather than the auto-generated `GITHUB_TOKEN`. The auto-generated token is available as `${{ secrets.GITHUB_TOKEN }}` in every Actions workflow and always posts as `github-actions[bot]`. You cannot override it by creating a repository secret with the same name — GitHub blocks that.
+
+### Using a custom named bot (GitHub App)
+
+To have reviews appear as `"Merlin AI Reviewer[bot]"` instead of `github-actions[bot]`, create a GitHub App:
+
+1. **Create the app** — GitHub Settings → Developer Settings → GitHub Apps → New GitHub App.
+   Set permissions: `Pull requests: Read & write`, `Contents: Read`. Disable webhooks.
+2. **Install it** on the target repository.
+3. **Store** the App ID and private key as repository secrets (`MERLIN_APP_ID`, `MERLIN_APP_PRIVATE_KEY`).
+4. **Generate a token** at the start of your workflow:
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  merlin-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate bot token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.MERLIN_APP_ID }}
+          private-key: ${{ secrets.MERLIN_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Merlin Review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: merlin review
+```
 
 ---
 
