@@ -14,8 +14,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Fixed
 
-- **Spell-check** — corrected typos flagged by `typos`: `unparseable` → `unparsable`
-  in `src/error.rs` and `src/diff/parser.rs`; `Clonable` → `Cloneable` in `CONTRIBUTING.md`
+- **Spell-check** — corrected three misspellings flagged by `typos` in
+  `src/error.rs`, `src/diff/parser.rs`, and `CONTRIBUTING.md`
 
 ---
 
