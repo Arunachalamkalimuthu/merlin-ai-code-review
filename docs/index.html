@@ -368,6 +368,129 @@
     .hl-cmd     { color: var(--green); }
     .hl-section { color: var(--accent); font-weight: 600; }
 
+    /* ── Up and running ──────────────────────────────────────────────────────── */
+    .setup-section {
+      padding: 96px 0;
+      background: var(--bg);
+      text-align: center;
+    }
+
+    .setup-section h2 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 56px;
+      text-align: left;
+    }
+
+    @media (max-width: 860px) {
+      .setup-grid { grid-template-columns: 1fr; }
+    }
+
+    .setup-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .setup-card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .setup-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .setup-card-header h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .setup-file-label {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 10px;
+      margin: 14px 20px 0;
+      display: inline-block;
+    }
+
+    .setup-code {
+      padding: 14px 20px 20px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.75;
+      color: var(--text);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .setup-info-box {
+      margin: 0 20px 20px;
+      padding: 14px 16px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .setup-info-box .info-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .setup-info-box p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .setup-info-box code {
+      font-family: var(--mono);
+      color: var(--accent);
+      font-size: 0.82rem;
+    }
+
+    .setup-cta-link {
+      display: inline-block;
+      margin-top: 40px;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .setup-cta-link:hover { text-decoration: underline; }
+
     /* ── CTA banner ──────────────────────────────────────────────────────────── */
     .cta-banner {
       text-align: center;
@@ -665,50 +788,76 @@
   </div>
 </section>
 
-<!-- ── Quick start ─────────────────────────────────────────────────────────── -->
-<section class="section" id="quickstart">
+<!-- ── Up and running in 60 seconds ──────────────────────────────────────── -->
+<section class="setup-section" id="quickstart">
   <div class="container">
-    <h2>Quick start</h2>
-    <p class="subtitle">Up and running in under 5 minutes.</p>
+    <h2>Up and running in 60 seconds</h2>
+    <p class="subtitle">
+      Works on GitHub, GitLab (cloud + self-hosted), Bitbucket, Azure DevOps, and Gitea.
+    </p>
 
-    <div class="tabs">
-      <div class="tab active">GitHub Actions</div>
-      <div class="tab" style="cursor:default;opacity:.5">GitLab CI</div>
-      <div class="tab" style="cursor:default;opacity:.5">Local</div>
-    </div>
+    <div class="setup-grid">
 
-    <pre class="snippet"><span class="hl-comment"># .github/workflows/review.yml</span>
-<span class="hl-key">on:</span>
-  <span class="hl-key">pull_request:</span>
-    <span class="hl-key">types:</span> [opened, synchronize]
+      <!-- GitHub Actions -->
+      <div class="setup-card">
+        <div class="setup-card-header">
+          <div class="setup-badge">1</div>
+          <h3>GitHub Actions</h3>
+        </div>
+        <span class="setup-file-label">.github/workflows/review.yml</span>
+        <div class="setup-code"><span style="color:var(--accent2)">on:</span>
+  <span style="color:var(--accent2)">pull_request:</span>
+    <span style="color:var(--accent2)">types:</span> [opened, synchronize]
+<span style="color:var(--accent2)">jobs:</span>
+  <span style="color:var(--accent2)">merlin-review:</span>
+    <span style="color:var(--accent2)">runs-on:</span> ubuntu-latest
+    <span style="color:var(--accent2)">permissions:</span>
+      <span style="color:var(--accent2)">pull-requests:</span> write
+    <span style="color:var(--accent2)">steps:</span>
+      - <span style="color:var(--accent2)">uses:</span> actions/checkout@v4
+        <span style="color:var(--accent2)">with:</span> { fetch-depth: 0 }
+      - <span style="color:var(--accent2)">run:</span> |
+          curl -L .../merlin-linux-amd64 -o merlin
+          chmod +x merlin &amp;&amp; ./merlin review
+        <span style="color:var(--accent2)">env:</span>
+          <span style="color:var(--accent2)">GITHUB_TOKEN:</span> <span style="color:#f0ab26">${{ secrets.GITHUB_TOKEN }}</span>
+          <span style="color:var(--accent2)">ANTHROPIC_API_KEY:</span> <span style="color:#f0ab26">${{ secrets.ANTHROPIC_API_KEY }}</span></div>
+      </div>
 
-<span class="hl-key">jobs:</span>
-  <span class="hl-key">merlin-review:</span>
-    <span class="hl-key">runs-on:</span> <span class="hl-str">ubuntu-latest</span>
-    <span class="hl-key">permissions:</span>
-      <span class="hl-key">pull-requests:</span> <span class="hl-str">write</span>
-    <span class="hl-key">steps:</span>
-      - <span class="hl-key">uses:</span> <span class="hl-str">actions/checkout@v4</span>
-        <span class="hl-key">with:</span> { <span class="hl-key">fetch-depth:</span> <span class="hl-str">0</span> }
-      - <span class="hl-key">run:</span> |
-          <span class="hl-cmd">curl -L https://github.com/you/merlin/releases/latest/download/merlin-linux-amd64 -o merlin</span>
-          <span class="hl-cmd">chmod +x merlin && ./merlin review</span>
-        <span class="hl-key">env:</span>
-          <span class="hl-key">GITHUB_TOKEN:</span>      <span class="hl-str">${{ secrets.GITHUB_TOKEN }}</span>
-          <span class="hl-key">ANTHROPIC_API_KEY:</span> <span class="hl-str">${{ secrets.ANTHROPIC_API_KEY }}</span></pre>
+      <!-- GitLab CI -->
+      <div class="setup-card">
+        <div class="setup-card-header">
+          <div class="setup-badge">2</div>
+          <h3>GitLab CI <span style="font-weight:400;color:var(--muted)">(cloud + self-hosted)</span></h3>
+        </div>
+        <span class="setup-file-label">.gitlab-ci.yml</span>
+        <div class="setup-code"><span style="color:var(--accent2)">merlin-review:</span>
+  <span style="color:var(--accent2)">image:</span> ubuntu:22.04
+  <span style="color:var(--accent2)">script:</span>
+    - curl -L .../merlin-linux-amd64 -o merlin
+    - chmod +x merlin &amp;&amp; ./merlin review
+  <span style="color:var(--accent2)">variables:</span>
+    <span style="color:var(--accent2)">GITLAB_TOKEN:</span> <span style="color:#f0ab26">$GITLAB_TOKEN</span>
+    <span style="color:var(--accent2)">ANTHROPIC_API_KEY:</span> <span style="color:#f0ab26">$ANTHROPIC_API_KEY</span>
+  <span style="color:var(--accent2)">rules:</span>
+    - <span style="color:var(--accent2)">if:</span> <span style="color:#f0ab26">$CI_PIPELINE_SOURCE == "merge_request_event"</span>
+</div>
+        <div class="setup-info-box">
+          <div class="info-title">GitLab Self-Hosted</div>
+          <p>Works with on-premise GitLab instances. Set
+            <code>GITLAB_URL=https://gitlab.company.com</code>
+            and configure your runner as normal.
+          </p>
+        </div>
+      </div>
 
-    <div style="margin-top:48px">
-      <h3 style="margin-bottom:16px;color:var(--text)">Then, optionally enable RAG for context-aware reviews</h3>
-      <pre class="snippet"><span class="hl-comment"># merlin.toml (add to your repo root)</span>
-<span class="hl-section">[rag]</span>
-<span class="hl-key">enabled</span>     = <span class="hl-str">true</span>
-<span class="hl-key">store</span>       = <span class="hl-str">"local"</span>   <span class="hl-comment"># zero infrastructure</span>
-<span class="hl-key">embed_model</span> = <span class="hl-str">"nomic-embed-text"</span>
+    </div><!-- /.setup-grid -->
 
-<span class="hl-comment"># Then index once:</span>
-<span class="hl-cmd">$ ollama pull nomic-embed-text</span>
-<span class="hl-cmd">$ merlin rag index .</span></pre>
-    </div>
+    <a href="https://github.com/Arunachalamkalimuthu/merlin-ai-code-review/blob/main/README.md"
+       target="_blank"
+       class="setup-cta-link">
+      Full setup guide — all platforms →
+    </a>
   </div>
 </section>
 

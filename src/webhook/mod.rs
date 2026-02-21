@@ -38,7 +38,7 @@ pub async fn serve(state: Arc<WebhookState>, port: u16) {
         .with_state(state);
 
     let addr = format!("0.0.0.0:{port}");
-    info!("Ferret webhook server listening on {addr}");
+    info!("Merlin webhook server listening on {addr}");
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
@@ -279,7 +279,7 @@ async fn dispatch_command(
     let tool = match route_command(command) {
         Ok(t) => t,
         Err(e) => {
-            let msg = format!("**Ferret:** Unknown command `{command}`. {e}");
+            let msg = format!("**Merlin:** Unknown command `{command}`. {e}");
             let _ = platform.post_summary(&msg).await;
             return;
         }
@@ -292,7 +292,7 @@ async fn dispatch_command(
             let _ = platform.post_summary(&result).await;
         }
         Err(e) => {
-            let msg = format!("**Ferret error running `{command}`:** {e}");
+            let msg = format!("**Merlin error running `{command}`:** {e}");
             warn!("{msg}");
             let _ = platform.post_summary(&msg).await;
         }

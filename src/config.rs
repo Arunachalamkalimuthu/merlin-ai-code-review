@@ -418,6 +418,40 @@ impl Default for AgentConfig {
     }
 }
 
+// ── Serve / REST API config ────────────────────────────────────────────────────
+
+/// Configuration for the `merlin serve` REST API server.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ServeConfig {
+    /// Port to listen on (default: 3000).
+    #[serde(default = "default_serve_port")]
+    pub port: u16,
+    /// API key required in the `X-Merlin-Api-Key` header for all protected endpoints.
+    /// Falls back to `MERLIN_API_KEY` env var if not set here.
+    pub api_key: Option<String>,
+    /// Git branch to watch for push-triggered auto-reindex (default: "main").
+    #[serde(default = "default_watch_branch")]
+    pub watch_branch: String,
+    /// Path to the index-freshness JSONL state file (default: "merlin-index-state.jsonl").
+    #[serde(default = "default_index_state_path")]
+    pub index_state_path: String,
+}
+
+fn default_serve_port() -> u16 { 3000 }
+fn default_watch_branch() -> String { "main".to_string() }
+fn default_index_state_path() -> String { "merlin-index-state.jsonl".to_string() }
+
+impl Default for ServeConfig {
+    fn default() -> Self {
+        ServeConfig {
+            port: default_serve_port(),
+            api_key: None,
+            watch_branch: default_watch_branch(),
+            index_state_path: default_index_state_path(),
+        }
+    }
+}
+
 // ── Root config ────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -442,6 +476,8 @@ pub struct Config {
     pub agent: AgentConfig,
     #[serde(default)]
     pub rag: RagConfig,
+    #[serde(default)]
+    pub serve: ServeConfig,
 }
 
 impl Config {

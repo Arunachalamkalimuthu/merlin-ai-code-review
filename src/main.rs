@@ -10,10 +10,12 @@ use merlin::agent::{AgentContext, AgentTask};
 use merlin::ai::build_provider;
 use merlin::config::Config;
 use merlin::diff::parse_diff;
-use merlin::error::{MerlinError, Result};
+use merlin::error::Result;
+use merlin::index_state::IndexFreshnessStore;
 use merlin::platform::build_client;
 use merlin::rag::build_pipeline;
 use merlin::review::ReviewEngine;
+use merlin::serve::{ServeState, serve as api_serve};
 use merlin::tools::{route_command, ToolContext};
 use merlin::webhook::{WebhookState, serve};
 
@@ -107,6 +109,17 @@ enum Commands {
         #[arg(long)]
         task: Option<String>,
     },
+
+    /// Start the REST API server for third-party integrations
+    ///
+    /// Exposes endpoints for triggering indexing, searching the code index,
+    /// and running reviews programmatically.  Protect the server with an API
+    /// key via `[serve] api_key` in merlin.toml or the MERLIN_API_KEY env var.
+    Serve {
+        /// Port to listen on (overrides [serve] port in merlin.toml)
+        #[arg(long, default_value = "3000")]
+        port: Option<u16>,
+    },
 }
 
 #[derive(Clone, Debug, clap::ValueEnum)]
@@ -167,7 +180,7 @@ async fn run() -> Result<()> {
                 Some(diff_path) => {
                     let raw_diff = std::fs::read_to_string(&diff_path)?;
                     let platform =
-                        Arc::from(NoOpPlatform) as Arc<dyn merlin::platform::PlatformClient>;
+                        Arc::from(merlin::platform::NoOpPlatform) as Arc<dyn merlin::platform::PlatformClient>;
                     let engine = ReviewEngine::new(ai, platform, config.review);
                     let comments = engine.run_local(&raw_diff).await?;
                     print_output(&comments, &output);
@@ -296,6 +309,25 @@ async fn run() -> Result<()> {
             }
         }
 
+        // ── merlin serve ─────────────────────────────────────────────────────
+        Commands::Serve { port } => {
+            let ai = Arc::from(build_provider(&config.ai)?);
+            let rag = Arc::new(build_pipeline(&config.rag));
+            let index_store = Arc::new(IndexFreshnessStore::new(
+                &config.serve.index_state_path,
+            ));
+            let listen_port = port.unwrap_or(config.serve.port);
+
+            let state = Arc::new(ServeState {
+                config: Arc::new(config),
+                ai,
+                rag,
+                index_store,
+            });
+
+            api_serve(state, listen_port).await;
+        }
+
         // ── ferret parse-diff ────────────────────────────────────────────────
         Commands::ParseDiff { diff } => {
             let raw = std::fs::read_to_string(&diff)?;
@@ -343,60 +375,3 @@ fn print_output(comments: &[merlin::ai::ReviewComment], format: &OutputFormat) {
     }
 }
 
-// ── No-op platform for local diff mode ───────────────────────────────────────
-
-struct NoOpPlatform;
-
-#[async_trait::async_trait]
-impl merlin::platform::PlatformClient for NoOpPlatform {
-    async fn get_diff(&self) -> merlin::error::Result<String> {
-        Err(MerlinError::Config(
-            "NoOpPlatform: get_diff not available in local mode".to_string(),
-        ))
-    }
-    async fn post_inline_comment(
-        &self,
-        _comment: &merlin::ai::ReviewComment,
-    ) -> merlin::error::Result<()> {
-        Ok(())
-    }
-    async fn post_summary(&self, _summary: &str) -> merlin::error::Result<()> {
-        Ok(())
-    }
-    async fn get_pr_info(&self) -> merlin::error::Result<merlin::platform::PrInfo> {
-        Err(MerlinError::Config("Not available in local mode".to_string()))
-    }
-    async fn update_description(&self, _title: &str, _body: &str) -> merlin::error::Result<()> {
-        Ok(())
-    }
-    async fn set_labels(&self, _labels: &[String]) -> merlin::error::Result<()> {
-        Ok(())
-    }
-    async fn list_issues(
-        &self,
-        _limit: usize,
-    ) -> merlin::error::Result<Vec<merlin::platform::Issue>> {
-        Ok(vec![])
-    }
-    async fn post_code_suggestions(
-        &self,
-        _suggestions: &[merlin::platform::InlineCodeSuggestion],
-    ) -> merlin::error::Result<()> {
-        Ok(())
-    }
-    async fn update_file(
-        &self,
-        _path: &str,
-        _content: &str,
-        _message: &str,
-        _current_sha: Option<&str>,
-    ) -> merlin::error::Result<()> {
-        Ok(())
-    }
-    async fn get_file(
-        &self,
-        _path: &str,
-    ) -> merlin::error::Result<Option<(String, String)>> {
-        Ok(None)
-    }
-}
