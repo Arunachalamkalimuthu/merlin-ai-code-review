@@ -1,0 +1,161 @@
+pub mod azure_devops;
+pub mod bitbucket;
+pub mod gitea;
+pub mod github;
+pub mod gitlab;
+
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+
+use crate::ai::ReviewComment;
+use crate::config::{Config, PlatformConfig, PlatformType};
+use crate::error::{MerlinError, Result};
+
+// ── Shared data types ─────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrInfo {
+    pub number: u64,
+    pub title: String,
+    pub body: String,
+    pub head_sha: String,
+    pub base_branch: String,
+    pub head_branch: String,
+    pub author: String,
+    pub is_draft: bool,
+    pub labels: Vec<String>,
+    pub files_changed: u32,
+    pub additions: u32,
+    pub deletions: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Issue {
+    pub number: u64,
+    pub title: String,
+    pub body: String,
+    pub labels: Vec<String>,
+    pub url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InlineCodeSuggestion {
+    pub file: String,
+    pub start_line: u32,
+    pub end_line: u32,
+    pub suggestion: String,
+    pub description: String,
+}
+
+// ── Platform trait ────────────────────────────────────────────────────────────
+
+/// Trait implemented by all VCS platform backends.
+#[async_trait]
+pub trait PlatformClient: Send + Sync {
+    // ── Core review ops ───────────────────────────────────────────────────
+    /// Fetch the raw unified diff for the current PR/MR.
+    async fn get_diff(&self) -> Result<String>;
+
+    /// Post a single inline review comment at the specified file/line.
+    async fn post_inline_comment(&self, comment: &ReviewComment) -> Result<()>;
+
+    /// Post the overall review summary as a PR/MR comment.
+    async fn post_summary(&self, summary: &str) -> Result<()>;
+
+    // ── PR metadata ops ───────────────────────────────────────────────────
+    /// Get PR/MR metadata (title, body, labels, stats).
+    async fn get_pr_info(&self) -> Result<PrInfo>;
+
+    /// Update the PR/MR title and description.
+    async fn update_description(&self, title: &str, body: &str) -> Result<()>;
+
+    /// Set labels on the PR/MR (replaces existing labels).
+    async fn set_labels(&self, labels: &[String]) -> Result<()>;
+
+    // ── Issue ops ─────────────────────────────────────────────────────────
+    /// List recent open issues (for /similar_issue).
+    async fn list_issues(&self, limit: usize) -> Result<Vec<Issue>>;
+
+    // ── File ops ──────────────────────────────────────────────────────────
+    /// Post inline code suggestions (multi-line suggestion blocks).
+    async fn post_code_suggestions(&self, suggestions: &[InlineCodeSuggestion]) -> Result<()>;
+
+    /// Update a file in the repository (for changelog etc.).
+    async fn update_file(
+        &self,
+        path: &str,
+        content: &str,
+        message: &str,
+        current_sha: Option<&str>,
+    ) -> Result<()>;
+
+    /// Get a file's content and SHA from the repo.
+    async fn get_file(&self, path: &str) -> Result<Option<(String, String)>>;
+}
+
+// ── Factory ───────────────────────────────────────────────────────────────────
+
+/// Auto-detect the platform from environment variables and build the client.
+pub fn build_client(cfg: &PlatformConfig) -> Result<Box<dyn PlatformClient>> {
+    let platform_type = if let Some(ref t) = cfg.platform_type {
+        t.clone()
+    } else {
+        detect_platform()?
+    };
+
+    match platform_type {
+        PlatformType::Github => {
+            let token = Config::github_token()?;
+            Ok(Box::new(github::GitHubClient::from_env(token)?))
+        }
+        PlatformType::Gitlab => {
+            let token = Config::gitlab_token()?;
+            Ok(Box::new(gitlab::GitLabClient::from_env(token)?))
+        }
+        PlatformType::Bitbucket => {
+            let token = Config::bitbucket_token()?;
+            Ok(Box::new(bitbucket::BitbucketClient::from_env(token)?))
+        }
+        PlatformType::AzureDevops => {
+            let token = Config::azure_devops_token()?;
+            Ok(Box::new(azure_devops::AzureDevOpsClient::from_env(token)?))
+        }
+        PlatformType::Gitea => {
+            let token = Config::gitea_token()?;
+            Ok(Box::new(gitea::GiteaClient::from_env(token)?))
+        }
+    }
+}
+
+fn detect_platform() -> Result<PlatformType> {
+    // GitHub Actions
+    if std::env::var("GITHUB_ACTIONS").is_ok() {
+        // Distinguish Gitea Actions (also sets GITHUB_ACTIONS) by GITEA_ACTIONS
+        if std::env::var("GITEA_ACTIONS").is_ok() {
+            return Ok(PlatformType::Gitea);
+        }
+        return Ok(PlatformType::Github);
+    }
+    // GitLab CI
+    if std::env::var("GITLAB_CI").is_ok() {
+        return Ok(PlatformType::Gitlab);
+    }
+    // Bitbucket Pipelines
+    if std::env::var("BITBUCKET_PIPELINE_UUID").is_ok() {
+        return Ok(PlatformType::Bitbucket);
+    }
+    // Azure Pipelines
+    if std::env::var("TF_BUILD").is_ok() {
+        return Ok(PlatformType::AzureDevops);
+    }
+    // Gitea Actions (older versions only set GITEA_ACTIONS, not GITHUB_ACTIONS)
+    if std::env::var("GITEA_ACTIONS").is_ok() {
+        return Ok(PlatformType::Gitea);
+    }
+    Err(MerlinError::Config(
+        "Could not auto-detect CI platform. Set one of: GITHUB_ACTIONS, GITLAB_CI, \
+         BITBUCKET_PIPELINE_UUID, TF_BUILD, or GITEA_ACTIONS. \
+         Alternatively set [platform] type in merlin.toml"
+            .to_string(),
+    ))
+}

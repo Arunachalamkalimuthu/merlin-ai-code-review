@@ -1,0 +1,97 @@
+# Merlin configuration — copy to merlin.toml and customize
+# Secrets are loaded from environment variables (never put them here).
+
+[ai]
+# AI provider — choose one:
+#   "anthropic"   — Claude via ANTHROPIC_API_KEY (default)
+#   "openai"      — GPT-4o via OPENAI_API_KEY
+#   "claude-code" — Claude Code CLI (no API key needed; run `claude auth login` once)
+#   "gemini"      — Google Gemini via GEMINI_API_KEY
+#   "ollama"      — Local Ollama instance (no API key required)
+provider = "anthropic"
+
+# Model to use — override to pin a specific version
+# Anthropic:   "claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5-20251001"
+# OpenAI:      "gpt-4o", "gpt-4o-mini", "gpt-4-turbo"
+# Gemini:      "gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"
+# Ollama:      any model pulled with `ollama pull` (e.g. "llama3.1", "codellama", "mistral")
+model = "claude-sonnet-4-6"
+
+# Maximum tokens in the AI response
+max_tokens = 4096
+
+# Temperature (lower = more deterministic reviews)
+temperature = 0.2
+
+# (claude-code only) Token for CI headless auth: claude auth login --token <TOKEN>
+# claude_code_token = "..."
+
+# (ollama only) Base URL of your Ollama server. Default: http://localhost:11434
+# ollama_base_url = "http://localhost:11434"
+
+[review]
+# Which categories to focus on
+focus = ["bugs", "security", "style", "performance"]
+
+# Cap total inline comments per review run (prevents PR spam)
+max_comments = 30
+
+# Split diff files into chunks of this many lines before sending to AI
+chunk_lines = 200
+
+# Run a second AI pass to filter false positives and refine severity (default: false)
+# reflect = true
+
+[platform]
+# Usually auto-detected from CI environment variables:
+#   GitHub Actions  → GITHUB_ACTIONS=true
+#   GitLab CI       → GITLAB_CI=true
+#   Bitbucket       → BITBUCKET_PIPELINE_UUID
+#   Azure DevOps    → TF_BUILD=True
+#   Gitea Actions   → GITEA_ACTIONS=true
+#
+# Uncomment to force a specific platform:
+# type = "github"      # or "gitlab", "bitbucket", "azure-devops", "gitea"
+
+[rag]
+# Enable retrieval-augmented generation for context-aware reviews
+enabled = false
+
+# Vector store backend: "local" | "memory" | "qdrant" | "chroma" | "pinecone"
+store = "local"
+
+# Embedding model (via Ollama)
+embed_model = "nomic-embed-text"
+
+# Ollama server for embeddings
+# ollama_base_url = "http://localhost:11434"
+
+# Collection name in the vector store
+# collection = "merlin"
+
+# Number of results to retrieve per query
+# top_k = 5
+
+# Minimum similarity score (0.0–1.0)
+# min_score = 0.5
+
+# Path for local JSONL store
+# local_path = "merlin-rag.jsonl"
+
+# Qdrant configuration (when store = "qdrant")
+# qdrant_url = "http://localhost:6333"
+# qdrant_api_key = ""  # optional for local Qdrant
+
+# ChromaDB configuration (when store = "chroma")
+# chroma_url = "http://localhost:8000"
+
+# Pinecone configuration (when store = "pinecone")
+# pinecone_api_key = ""  # or set PINECONE_API_KEY env var
+# pinecone_host = "https://your-index.svc.pinecone.io"
+
+[agent]
+# Maximum ReAct loop iterations before giving up
+# max_iterations = 10
+
+# Port for Slack/Discord webhook server
+# port = 8090

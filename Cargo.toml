@@ -1,0 +1,39 @@
+[package]
+name = "merlin"
+version = "0.1.0"
+edition = "2021"
+description = "AI-powered self-hosted code review CLI for GitHub and GitLab"
+license = "MIT"
+repository = "https://github.com/Arunachalamkalimuthu/merlin-ai-code-review"
+
+[[bin]]
+name = "merlin"
+path = "src/main.rs"
+
+[lib]
+name = "merlin"
+path = "src/lib.rs"
+
+[dependencies]
+tokio        = { version = "1", features = ["full"] }
+clap         = { version = "4", features = ["derive"] }
+serde        = { version = "1", features = ["derive"] }
+serde_json   = "1"
+toml         = "0.8"
+reqwest      = { version = "0.12", features = ["json", "rustls-tls", "multipart"], default-features = false }
+thiserror    = "2"
+anyhow       = "1"
+async-trait  = "0.1"
+tracing      = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+axum         = { version = "0.7", features = ["json"] }
+hmac         = "0.12"
+sha2         = "0.10"
+hex          = "0.4"
+regex        = "1"
+base64       = "0.22"
+tempfile     = "3"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3"

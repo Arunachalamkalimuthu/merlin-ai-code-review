@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Merlin — Self-Hosted AI Code Review</title>
+  <meta name="description" content="Open-source AI code review for GitHub, GitLab, Bitbucket, Azure DevOps, and Gitea. Bring your own key. No data leaves your infrastructure." />
+  <style>
+    /* ── Reset & base ──────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --bg2:       #161b22;
+      --bg3:       #1c2128;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --accent:    #f78166;
+      --accent2:   #79c0ff;
+      --green:     #56d364;
+      --yellow:    #e3b341;
+      --radius:    8px;
+      --mono:      'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    a { color: var(--accent2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Layout helpers ────────────────────────────────────────────────────── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .section { padding: 80px 0; }
+    .section--alt { background: var(--bg2); }
+
+    h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+    h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: 8px; }
+    p { color: var(--muted); margin-bottom: 16px; }
+    p:last-child { margin-bottom: 0; }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-bottom: 40px;
+    }
+
+    /* ── Nav ────────────────────────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+
+    .nav-logo {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a { color: var(--muted); font-size: 0.9rem; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .nav-cta {
+      background: var(--accent);
+      color: #fff !important;
+      padding: 6px 16px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 0.85rem !important;
+    }
+    .nav-cta:hover { opacity: 0.9; text-decoration: none !important; }
+
+    /* ── Hero ───────────────────────────────────────────────────────────────── */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    .hero-badge span { color: var(--green); font-size: 0.65rem; }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 24px;
+      letter-spacing: -0.02em;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, #f78166, #ff9580);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.15rem;
+      max-width: 620px;
+      margin: 0 auto 40px;
+      color: var(--muted);
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; text-decoration: none; }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary {
+      background: var(--bg2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Code block ─────────────────────────────────────────────────────────── */
+    .code-block {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      line-height: 1.7;
+      text-align: left;
+      overflow-x: auto;
+      margin-top: 48px;
+      max-width: 680px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .code-block .comment { color: var(--muted); }
+    .code-block .key     { color: var(--accent2); }
+    .code-block .val     { color: var(--green); }
+    .code-block .str     { color: var(--yellow); }
+    .code-block .cmd     { color: var(--accent); }
+    .code-block .section { color: var(--accent); }
+
+    /* ── Logos strip ─────────────────────────────────────────────────────────── */
+    .platforms {
+      padding: 32px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .platforms p {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .platform-logos {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+
+    .platform-logos span {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+
+    /* ── Feature grid ────────────────────────────────────────────────────────── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: border-color 0.2s;
+    }
+
+    .feature-card:hover { border-color: #4d5562; }
+
+    .feature-icon {
+      font-size: 1.8rem;
+      margin-bottom: 14px;
+    }
+
+    .feature-card h3 { color: var(--text); }
+    .feature-card p { font-size: 0.9rem; color: var(--muted); }
+
+    /* ── Slash commands table ─────────────────────────────────────────────────── */
+    .cmd-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .cmd-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+
+    .cmd-name {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--accent2);
+      white-space: nowrap;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+
+    .cmd-desc { font-size: 0.85rem; color: var(--muted); }
+
+    /* ── RAG / agent sections ────────────────────────────────────────────────── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    @media (max-width: 720px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .tag {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 10px;
+      font-size: 0.78rem;
+      font-family: var(--mono);
+      color: var(--accent2);
+    }
+
+    /* ── Stores / providers grid ──────────────────────────────────────────────── */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .store-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+    }
+
+    .store-card .icon { font-size: 2rem; margin-bottom: 10px; }
+    .store-card h4 { font-size: 1rem; color: var(--text); margin-bottom: 6px; }
+    .store-card p { font-size: 0.82rem; color: var(--muted); margin: 0; }
+
+    /* ── Quick start ─────────────────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: -1px;
+    }
+
+    .tab {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 8px 18px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .tab.active { background: var(--bg3); color: var(--text); border-bottom: 1px solid var(--bg3); }
+
+    pre.snippet {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 0 var(--radius) var(--radius) var(--radius);
+      padding: 24px;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.75;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .hl-comment { color: var(--muted); }
+    .hl-key     { color: var(--accent2); }
+    .hl-str     { color: var(--yellow); }
+    .hl-cmd     { color: var(--green); }
+    .hl-section { color: var(--accent); font-weight: 600; }
+
+    /* ── CTA banner ──────────────────────────────────────────────────────────── */
+    .cta-banner {
+      text-align: center;
+      padding: 80px 24px;
+      background: linear-gradient(135deg, #1c1228 0%, #0d1117 100%);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cta-banner h2 { font-size: 2.2rem; margin-bottom: 16px; }
+    .cta-banner p { max-width: 540px; margin: 0 auto 36px; }
+
+    /* ── Footer ──────────────────────────────────────────────────────────────── */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    footer p { font-size: 0.85rem; color: var(--muted); }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+
+    /* ── Responsive ──────────────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .hero { padding: 60px 0 48px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ─────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="container nav-inner">
+    <a href="#" class="nav-logo" style="text-decoration:none">🦡 Merlin</a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#rag">RAG</a></li>
+      <li><a href="#agent">Agent</a></li>
+      <li><a href="#quickstart">Quick Start</a></li>
+      <li><a href="https://github.com/you/merlin" target="_blank">GitHub</a></li>
+      <li><a href="https://github.com/you/merlin/blob/main/CONTRIBUTING.md" class="nav-cta">Contribute</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ── Hero ───────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">
+      <span>●</span> Open source &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; Self-hosted
+    </div>
+
+    <h1>AI code review that<br><em>stays on your infrastructure</em></h1>
+
+    <p>
+      Merlin reviews every pull request with configurable AI — inline comments, security scans,
+      docs generation, and an autonomous agent — all without sending code to a third-party SaaS.
+    </p>
+
+    <div class="hero-actions">
+      <a href="#quickstart" class="btn btn-primary">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm3.5 7.5h-7a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1zM8 4a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 1 0v-7A.5.5 0 0 0 8 4z"/></svg>
+        Get started
+      </a>
+      <a href="https://github.com/you/merlin" target="_blank" class="btn btn-secondary">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+
+    <div class="code-block">
+      <span class="comment"># .github/workflows/review.yml — add to any repo in 60 seconds</span><br>
+      <span class="cmd">- run: |</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">curl -L https://github.com/you/merlin/releases/latest/download/merlin-linux-amd64 -o merlin</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">chmod +x merlin && ./merlin review</span><br>
+      &nbsp;&nbsp;<span class="key">env:</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">GITHUB_TOKEN:</span> <span class="str">${{ secrets.GITHUB_TOKEN }}</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">ANTHROPIC_API_KEY:</span> <span class="str">${{ secrets.ANTHROPIC_API_KEY }}</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── Platform logos ──────────────────────────────────────────────────────── -->
+<div class="platforms">
+  <div class="container">
+    <p>Works with</p>
+    <div class="platform-logos">
+      <span>GitHub</span>
+      <span>GitLab</span>
+      <span>Bitbucket</span>
+      <span>Azure DevOps</span>
+      <span>Gitea</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Features ───────────────────────────────────────────────────────────── -->
+<section class="section" id="features">
+  <div class="container">
+    <h2>Everything you need for automated code review</h2>
+    <p class="subtitle">One binary. No SaaS. Full control.</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>Inline comments</h3>
+        <p>AI posts file-level, line-level comments directly on the PR — bugs, security issues, style, and performance — sorted by severity.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>6 AI backends</h3>
+        <p>Claude (Anthropic API or Claude Code CLI), OpenAI GPT-4o, Google Gemini, AWS Bedrock, Ollama. Swap with one config line.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3>Security scanning</h3>
+        <p>Dedicated <code>/security</code> command for OWASP-top-10 analysis, secret detection, and dependency scanning via Snyk integration.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Concurrent review</h3>
+        <p>Tokio fan-out — diff chunks are reviewed in parallel. Large PRs finish in seconds, not minutes.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🪝</div>
+        <h3>Webhook bot mode</h3>
+        <p>Run <code>merlin webhook</code> and let GitHub / GitLab trigger commands whenever someone comments <code>@merlin /review</code>.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔁</div>
+        <h3>Reflect &amp; Review</h3>
+        <p>Optional second AI pass to remove false positives, merge duplicates, and correct severity levels before comments are posted.</p>
+      </div>
+    </div>
+
+    <!-- Slash commands -->
+    <h2 style="margin-top:64px">19 slash commands, out of the box</h2>
+    <p class="subtitle">Trigger from a PR comment, CI step, or the autonomous agent.</p>
+
+    <div class="cmd-grid">
+      <div class="cmd-item"><span class="cmd-name">/review</span><span class="cmd-desc">Full inline code review</span></div>
+      <div class="cmd-item"><span class="cmd-name">/describe</span><span class="cmd-desc">Auto-generate PR title &amp; description</span></div>
+      <div class="cmd-item"><span class="cmd-name">/ask</span><span class="cmd-desc">Q&amp;A about the diff</span></div>
+      <div class="cmd-item"><span class="cmd-name">/improve</span><span class="cmd-desc">Inline code suggestion blocks</span></div>
+      <div class="cmd-item"><span class="cmd-name">/generate_labels</span><span class="cmd-desc">Auto-label the PR</span></div>
+      <div class="cmd-item"><span class="cmd-name">/update_changelog</span><span class="cmd-desc">Prepend CHANGELOG entry</span></div>
+      <div class="cmd-item"><span class="cmd-name">/add_doc</span><span class="cmd-desc">Generate missing docstrings</span></div>
+      <div class="cmd-item"><span class="cmd-name">/similar_issue</span><span class="cmd-desc">Find related open issues</span></div>
+      <div class="cmd-item"><span class="cmd-name">/test</span><span class="cmd-desc">Generate unit tests</span></div>
+      <div class="cmd-item"><span class="cmd-name">/explain</span><span class="cmd-desc">Plain-language walkthrough</span></div>
+      <div class="cmd-item"><span class="cmd-name">/security</span><span class="cmd-desc">OWASP + secret detection scan</span></div>
+      <div class="cmd-item"><span class="cmd-name">/approve</span><span class="cmd-desc">AI-assisted review verdict</span></div>
+      <div class="cmd-item"><span class="cmd-name">/commit_message</span><span class="cmd-desc">Generate commit messages</span></div>
+      <div class="cmd-item"><span class="cmd-name">/docs</span><span class="cmd-desc">Generate docs (readme/api/adr/wiki)</span></div>
+      <div class="cmd-item"><span class="cmd-name">/snyk</span><span class="cmd-desc">Snyk dependency scan</span></div>
+      <div class="cmd-item"><span class="cmd-name">/coverage</span><span class="cmd-desc">Test coverage analysis</span></div>
+      <div class="cmd-item"><span class="cmd-name">/link_jira</span><span class="cmd-desc">Link related Jira issues</span></div>
+      <div class="cmd-item"><span class="cmd-name">/link_linear</span><span class="cmd-desc">Link related Linear issues</span></div>
+      <div class="cmd-item"><span class="cmd-name">/triage</span><span class="cmd-desc">CodeTriage issue search</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── RAG ─────────────────────────────────────────────────────────────────── -->
+<section class="section section--alt" id="rag">
+  <div class="container">
+    <div class="two-col">
+      <div>
+        <h2>Context-aware review with RAG</h2>
+        <p>
+          Merlin can index your entire codebase and past review comments into a vector store.
+          Before each AI call, relevant snippets are retrieved and injected into the prompt —
+          so the AI knows your patterns, naming conventions, and past issues.
+        </p>
+        <p>
+          Embeddings run locally via <strong>Ollama</strong>. No embedding API cost.
+          Five vector store backends to match any infrastructure.
+        </p>
+        <div class="tag-list">
+          <span class="tag">local (JSONL)</span>
+          <span class="tag">memory</span>
+          <span class="tag">Qdrant</span>
+          <span class="tag">ChromaDB</span>
+          <span class="tag">Pinecone</span>
+        </div>
+      </div>
+      <div class="code-block" style="margin-top:0">
+        <span class="comment"># merlin.toml</span><br>
+        <span class="section">[rag]</span><br>
+        <span class="key">enabled</span> = <span class="val">true</span><br>
+        <span class="key">store</span> &nbsp;&nbsp;= <span class="str">"qdrant"</span><br>
+        <span class="key">embed_model</span> = <span class="str">"nomic-embed-text"</span><br>
+        <br>
+        <span class="comment"># One-time setup</span><br>
+        <span class="cmd">$ ollama pull nomic-embed-text</span><br>
+        <span class="cmd">$ docker run -p 6333:6333 qdrant/qdrant</span><br>
+        <span class="cmd">$ merlin rag index .</span><br>
+        <br>
+        <span class="comment"># Review now has full codebase context</span><br>
+        <span class="cmd">$ merlin review</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Agent ───────────────────────────────────────────────────────────────── -->
+<section class="section" id="agent">
+  <div class="container">
+    <div class="two-col">
+      <div class="code-block" style="margin-top:0">
+        <span class="comment"># CLI REPL</span><br>
+        <span class="cmd">$ merlin agent</span><br>
+        <span class="val">🦡 Merlin Agent — type your task and press Enter</span><br>
+        <br>
+        <span class="str">&gt; review the last 3 PRs and summarise the patterns</span><br>
+        <span class="comment">… reasoning …</span><br>
+        <span class="val">Calling tool: review</span><br>
+        <span class="val">Calling tool: rag_search</span><br>
+        <span class="val">Calling tool: post_comment</span><br>
+        <br>
+        <span class="comment"># Slack / Discord</span><br>
+        <span class="cmd">$ merlin agent --channel slack --port 8090</span><br>
+        <br>
+        <span class="comment"># Single-shot CI</span><br>
+        <span class="cmd">$ merlin agent --task "run /security and /approve"</span>
+      </div>
+      <div>
+        <h2>Autonomous ReAct agent</h2>
+        <p>
+          Merlin includes a full <strong>Reason → Act → Observe</strong> agent loop.
+          Give it a goal and it plans the steps, calls the right tools, observes the results,
+          and iterates until done.
+        </p>
+        <p>
+          All slash commands are available as agent tools. The agent also has
+          <code>rag_search</code>, <code>post_comment</code>, and <code>get_pr_info</code>
+          for richer autonomous workflows.
+        </p>
+        <p>
+          Conversation memory persists across sessions via a JSONL ring-buffer,
+          so the agent remembers context from earlier interactions.
+        </p>
+        <div class="tag-list">
+          <span class="tag">CLI REPL</span>
+          <span class="tag">Slack</span>
+          <span class="tag">Discord</span>
+          <span class="tag">Single-shot</span>
+          <span class="tag">Persistent memory</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── AI providers grid ──────────────────────────────────────────────────── -->
+<section class="section section--alt">
+  <div class="container">
+    <h2 style="text-align:center">Bring your own model</h2>
+    <p style="text-align:center;margin-bottom:40px">Switch AI backends in one line. Never locked in.</p>
+
+    <div class="grid-3">
+      <div class="store-card">
+        <div class="icon">🤖</div>
+        <h4>Anthropic Claude</h4>
+        <p><code>provider = "anthropic"</code></p>
+      </div>
+      <div class="store-card">
+        <div class="icon">💬</div>
+        <h4>OpenAI GPT-4o</h4>
+        <p><code>provider = "openai"</code></p>
+      </div>
+      <div class="store-card">
+        <div class="icon">🖥️</div>
+        <h4>Claude Code CLI</h4>
+        <p><code>provider = "claude-code"</code></p>
+      </div>
+      <div class="store-card">
+        <div class="icon">✨</div>
+        <h4>Google Gemini</h4>
+        <p><code>provider = "gemini"</code></p>
+      </div>
+      <div class="store-card">
+        <div class="icon">☁️</div>
+        <h4>AWS Bedrock</h4>
+        <p><code>provider = "bedrock"</code></p>
+      </div>
+      <div class="store-card">
+        <div class="icon">🦙</div>
+        <h4>Ollama (local)</h4>
+        <p><code>provider = "ollama"</code></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Quick start ─────────────────────────────────────────────────────────── -->
+<section class="section" id="quickstart">
+  <div class="container">
+    <h2>Quick start</h2>
+    <p class="subtitle">Up and running in under 5 minutes.</p>
+
+    <div class="tabs">
+      <div class="tab active">GitHub Actions</div>
+      <div class="tab" style="cursor:default;opacity:.5">GitLab CI</div>
+      <div class="tab" style="cursor:default;opacity:.5">Local</div>
+    </div>
+
+    <pre class="snippet"><span class="hl-comment"># .github/workflows/review.yml</span>
+<span class="hl-key">on:</span>
+  <span class="hl-key">pull_request:</span>
+    <span class="hl-key">types:</span> [opened, synchronize]
+
+<span class="hl-key">jobs:</span>
+  <span class="hl-key">merlin-review:</span>
+    <span class="hl-key">runs-on:</span> <span class="hl-str">ubuntu-latest</span>
+    <span class="hl-key">permissions:</span>
+      <span class="hl-key">pull-requests:</span> <span class="hl-str">write</span>
+    <span class="hl-key">steps:</span>
+      - <span class="hl-key">uses:</span> <span class="hl-str">actions/checkout@v4</span>
+        <span class="hl-key">with:</span> { <span class="hl-key">fetch-depth:</span> <span class="hl-str">0</span> }
+      - <span class="hl-key">run:</span> |
+          <span class="hl-cmd">curl -L https://github.com/you/merlin/releases/latest/download/merlin-linux-amd64 -o merlin</span>
+          <span class="hl-cmd">chmod +x merlin && ./merlin review</span>
+        <span class="hl-key">env:</span>
+          <span class="hl-key">GITHUB_TOKEN:</span>      <span class="hl-str">${{ secrets.GITHUB_TOKEN }}</span>
+          <span class="hl-key">ANTHROPIC_API_KEY:</span> <span class="hl-str">${{ secrets.ANTHROPIC_API_KEY }}</span></pre>
+
+    <div style="margin-top:48px">
+      <h3 style="margin-bottom:16px;color:var(--text)">Then, optionally enable RAG for context-aware reviews</h3>
+      <pre class="snippet"><span class="hl-comment"># merlin.toml (add to your repo root)</span>
+<span class="hl-section">[rag]</span>
+<span class="hl-key">enabled</span>     = <span class="hl-str">true</span>
+<span class="hl-key">store</span>       = <span class="hl-str">"local"</span>   <span class="hl-comment"># zero infrastructure</span>
+<span class="hl-key">embed_model</span> = <span class="hl-str">"nomic-embed-text"</span>
+
+<span class="hl-comment"># Then index once:</span>
+<span class="hl-cmd">$ ollama pull nomic-embed-text</span>
+<span class="hl-cmd">$ merlin rag index .</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA banner ─────────────────────────────────────────────────────────── -->
+<div class="cta-banner">
+  <div class="container">
+    <h2>Ready to ship better code?</h2>
+    <p>
+      Merlin is free, open-source, and takes under 5 minutes to add to any CI pipeline.
+      Your code never leaves your infrastructure.
+    </p>
+    <div class="hero-actions">
+      <a href="https://github.com/you/merlin" target="_blank" class="btn btn-primary">Star on GitHub</a>
+      <a href="https://github.com/you/merlin/blob/main/CONTRIBUTING.md" target="_blank" class="btn btn-secondary">Contribute</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <p>
+      🦡 Merlin &nbsp;·&nbsp; MIT License &nbsp;·&nbsp;
+      <a href="https://github.com/you/merlin" target="_blank">GitHub</a> &nbsp;·&nbsp;
+      <a href="https://github.com/you/merlin/blob/main/README.md" target="_blank">Docs</a> &nbsp;·&nbsp;
+      <a href="https://github.com/you/merlin/blob/main/CONTRIBUTING.md" target="_blank">Contributing</a>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

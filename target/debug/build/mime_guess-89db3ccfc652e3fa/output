@@ -1,0 +1,1 @@
+cargo:rustc-env=MIME_TYPES_GENERATED_PATH=/Users/arunachalamk/code/ferret/target/debug/build/mime_guess-89db3ccfc652e3fa/out/mime_types_generated.rs
