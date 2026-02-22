@@ -19,7 +19,7 @@
 //! When a [`RagPipeline`] is attached via [`ReviewEngine::with_rag`], each
 //! diff chunk is enriched with the top-K semantically similar documents from
 //! the codebase index before being sent to the AI.
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::{info, warn};
@@ -129,10 +129,24 @@ impl ReviewEngine {
             comments.truncate(self.config.max_comments);
         }
 
-        // 8. Post inline comments
+        // 8. Post inline comments — clamp line numbers to valid diff positions to
+        //    avoid GitHub API 422 errors when the AI references lines outside the hunk.
+        let valid_lines = build_valid_diff_lines(&file_diffs);
         for comment in &comments {
-            if let Err(e) = self.platform.post_inline_comment(comment).await {
-                warn!("Failed to post inline comment on {}: {e}", comment.file);
+            match nearest_valid_line(comment.line, &comment.file, &valid_lines) {
+                Some(valid_line) => {
+                    let mut c = comment.clone();
+                    c.line = valid_line;
+                    if let Err(e) = self.platform.post_inline_comment(&c).await {
+                        warn!("Failed to post inline comment on {}: {e}", c.file);
+                    }
+                }
+                None => {
+                    warn!(
+                        "Skipping inline comment on {} line {} — not in diff",
+                        comment.file, comment.line
+                    );
+                }
             }
         }
 
@@ -277,6 +291,57 @@ impl ReviewEngine {
 
         Ok(all_comments)
     }
+}
+
+/// Build a map of file path → sorted list of new-file line numbers present in the diff.
+///
+/// GitHub's inline PR comment API only accepts lines that appear as added (`+`)
+/// or context (` `) lines in a hunk — i.e. lines with a `new_line` position.
+/// Posting on any other line number yields a 422 Unprocessable Entity error.
+fn build_valid_diff_lines(file_diffs: &[FileDiff]) -> HashMap<String, Vec<u32>> {
+    let mut map: HashMap<String, Vec<u32>> = HashMap::new();
+    for file in file_diffs {
+        let mut lines: Vec<u32> = file
+            .hunks
+            .iter()
+            .flat_map(|h| h.lines.iter())
+            .filter_map(|l| l.new_line)
+            .collect();
+        lines.sort_unstable();
+        lines.dedup();
+        if !lines.is_empty() {
+            map.insert(file.path().to_string(), lines);
+        }
+    }
+    map
+}
+
+/// Return the nearest valid diff line for `file`, or `None` if the file has no
+/// commentable lines (e.g. it was deleted or not present in the diff).
+fn nearest_valid_line(
+    target: u32,
+    file: &str,
+    valid_lines: &HashMap<String, Vec<u32>>,
+) -> Option<u32> {
+    let lines = valid_lines.get(file)?;
+    if lines.is_empty() {
+        return None;
+    }
+    let pos = lines.partition_point(|&l| l <= target);
+    let best = match pos {
+        0 => lines[0],
+        n if n >= lines.len() => lines[lines.len() - 1],
+        n => {
+            let before = lines[n - 1];
+            let after = lines[n];
+            if target.abs_diff(before) <= target.abs_diff(after) {
+                before
+            } else {
+                after
+            }
+        }
+    };
+    Some(best)
 }
 
 /// Remove duplicate comments (same file + line + title).
