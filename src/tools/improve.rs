@@ -10,6 +10,7 @@ use crate::digest::prioritize_diffs;
 use crate::error::Result;
 use crate::platform::InlineCodeSuggestion;
 
+/// Tool for the `/improve` slash command — suggests code improvements.
 pub struct ImproveTool;
 
 #[derive(Deserialize)]

@@ -21,27 +21,41 @@ const CODETRIAGE_BASE: &str = "https://www.codetriage.com";
 
 // ── API types ──────────────────────────────────────────────────────────────────
 
+/// A repository listed in CodeTriage.
 #[derive(Deserialize, Debug)]
 pub struct CodeTriageRepo {
+    /// `owner/repo` identifier.
     pub full_name: String,
+    /// Optional repository description.
     pub description: Option<String>,
+    /// Number of CodeTriage subscribers watching this repo.
     pub subscribers_count: u32,
+    /// Number of open GitHub issues.
     pub open_issues: u32,
+    /// URL to the GitHub repository.
     pub github_url: String,
 }
 
+/// An issue surfaced by CodeTriage.
 #[derive(Deserialize, Debug, Clone)]
 pub struct CodeTriageIssue {
+    /// GitHub issue number.
     pub number: u64,
+    /// Issue title.
     pub title: String,
+    /// Web URL of the issue.
     pub html_url: String,
+    /// Issue state (`"open"` or `"closed"`).
     pub state: String,
+    /// Labels applied to the issue.
     #[serde(default)]
     pub labels: Vec<CodeTriageLabel>,
 }
 
+/// A label attached to a CodeTriage issue.
 #[derive(Deserialize, Debug, Clone)]
 pub struct CodeTriageLabel {
+    /// Label name.
     pub name: String,
 }
 
@@ -52,11 +66,13 @@ struct CodeTriageIssuesResponse {
 
 // ── Client ──────────────────────────────────────────────────────────────────────
 
+/// HTTP client for the CodeTriage API.
 pub struct CodeTriageClient {
     client: reqwest::Client,
 }
 
 impl CodeTriageClient {
+    /// Create a new CodeTriage client.
     pub fn new() -> Self {
         Self {
             client: reqwest::Client::new(),

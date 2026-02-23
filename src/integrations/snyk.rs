@@ -34,35 +34,51 @@ struct SnykIssuesResponse {
     data: Vec<SnykIssue>,
 }
 
+/// A vulnerability issue returned by the Snyk API.
 #[derive(Deserialize)]
 pub struct SnykIssue {
+    /// Snyk issue ID.
     pub id: String,
+    /// Detailed vulnerability attributes.
     pub attributes: SnykIssueAttributes,
 }
 
+/// Detailed attributes of a Snyk vulnerability.
 #[derive(Deserialize)]
 pub struct SnykIssueAttributes {
+    /// Vulnerability title.
     pub title: String,
+    /// Full description.
     #[serde(default)]
     pub description: String,
-    pub severity: String, // "critical" | "high" | "medium" | "low"
+    /// Severity level: `"critical"`, `"high"`, `"medium"`, or `"low"`.
+    pub severity: String,
+    /// CWE identifiers.
     #[serde(default)]
     pub cwe: Vec<String>,
+    /// CVSS v3 base score.
     #[serde(default)]
     pub cvss_v3: Option<f32>,
+    /// Exploit maturity level.
     #[serde(default)]
     pub exploit_maturity: Option<String>,
+    /// Coordinates describing the affected package paths.
     pub coordinates: Option<Vec<SnykCoordinate>>,
 }
 
+/// Package coordinate in the dependency graph.
 #[derive(Deserialize)]
 pub struct SnykCoordinate {
+    /// Available remediation options.
     pub remedies: Option<Vec<SnykRemedy>>,
 }
 
+/// A suggested fix for a vulnerability.
 #[derive(Deserialize)]
 pub struct SnykRemedy {
+    /// Human-readable description of the fix.
     pub description: String,
+    /// Type of fix (e.g. `"indirectUpgrade"`, `"pin"`).
     #[serde(rename = "type")]
     pub remedy_type: String,
 }
@@ -70,18 +86,27 @@ pub struct SnykRemedy {
 /// Summary of a vulnerability returned for display.
 #[derive(Debug, Clone)]
 pub struct VulnSummary {
+    /// Snyk vulnerability ID.
     pub id: String,
+    /// Affected package name.
     pub package: String,
+    /// Vulnerability title.
     pub title: String,
+    /// Severity level.
     pub severity: String,
+    /// CWE identifiers.
     pub cwe: Vec<String>,
+    /// CVSS v3 base score.
     pub cvss_v3: Option<f32>,
+    /// URL to the Snyk vulnerability page.
     pub snyk_url: String,
+    /// Suggested fix description, if available.
     pub fix: Option<String>,
 }
 
 // ── Client ──────────────────────────────────────────────────────────────────────
 
+/// HTTP client for the Snyk REST API.
 pub struct SnykClient {
     token: String,
     org_id: Option<String>,
@@ -89,6 +114,7 @@ pub struct SnykClient {
 }
 
 impl SnykClient {
+    /// Create a new Snyk client with the given API token and org ID.
     pub fn new(token: String, org_id: Option<String>) -> Self {
         Self {
             token,
@@ -97,6 +123,7 @@ impl SnykClient {
         }
     }
 
+    /// Create a Snyk client by reading credentials from the environment.
     pub fn from_env(config: &SnykConfig) -> Result<Self> {
         let token = std::env::var("SNYK_TOKEN")
             .map_err(|_| MerlinError::EnvVar("SNYK_TOKEN".to_string()))?;
@@ -239,8 +266,11 @@ impl SnykClient {
 /// Package detected in diff with its ecosystem.
 #[derive(Debug, Clone)]
 pub struct DetectedPackage {
+    /// Package ecosystem (e.g. `"npm"`, `"pypi"`, `"cargo"`).
     pub ecosystem: &'static str,
+    /// Package name.
     pub name: String,
+    /// Detected version, if available.
     pub version: Option<String>,
 }
 

@@ -10,14 +10,19 @@ use crate::ai::ReviewComment;
 use crate::diff::{parse_diff, LineKind};
 use crate::error::Result;
 
+/// Tool for the `/security` slash command — deep security analysis of the diff.
 pub struct SecurityTool;
 
 /// A detected secret or credential in the diff.
 #[derive(Debug, Serialize)]
 pub struct DetectedSecret {
+    /// Path of the file containing the finding.
     pub file: String,
+    /// Line number of the finding.
     pub line: u32,
+    /// Category of the finding (e.g. `"SQL injection"`, `"XSS"`).
     pub kind: String,
+    /// Relevant code snippet showing the issue.
     pub snippet: String,
 }
 

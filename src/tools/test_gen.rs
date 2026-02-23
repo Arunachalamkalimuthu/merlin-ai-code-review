@@ -10,6 +10,7 @@ use super::{MerlinTool, ToolContext};
 use crate::diff::{parse_diff, LineKind};
 use crate::error::Result;
 
+/// Tool for the `/test` slash command — generates unit tests for changed code.
 pub struct TestGenTool;
 
 #[async_trait]

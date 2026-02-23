@@ -21,6 +21,7 @@ use tracing::{debug, warn};
 use crate::config::JiraConfig;
 use crate::error::{MerlinError, Result};
 
+/// HTTP client for the Jira REST API.
 pub struct JiraClient {
     config: JiraConfig,
     api_token: String,
@@ -30,9 +31,13 @@ pub struct JiraClient {
 /// A Jira issue summary returned by search.
 #[derive(Debug, Clone)]
 pub struct JiraIssue {
+    /// Jira issue key (e.g. `"PROJ-123"`).
     pub key: String,
+    /// Issue summary text.
     pub summary: String,
+    /// Current workflow status name.
     pub status: String,
+    /// URL to view the issue in Jira.
     pub url: String,
 }
 
@@ -90,6 +95,7 @@ struct JiraAdfText<'a> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 impl JiraClient {
+    /// Create a new Jira client with the given config and API token.
     pub fn new(config: JiraConfig, api_token: String) -> Self {
         Self {
             config,

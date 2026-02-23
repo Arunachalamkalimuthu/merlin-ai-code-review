@@ -1,4 +1,12 @@
+//! Review orchestration — [`ReviewEngine`], diff filtering, and summary generation.
+//!
+//! The main entry point is [`ReviewEngine::run`] for CI-mode reviews and
+//! [`ReviewEngine::run_local`] for local diff files.  See [`engine`] for the
+//! full eight-step review cycle, and [`filter`] for deduplication and the
+//! Reflect & Review second pass.
+
 pub mod engine;
+pub mod filter;
 
 pub use engine::ReviewEngine;
 

@@ -9,6 +9,7 @@ use crate::error::Result;
 
 const CHANGELOG_PATH: &str = "CHANGELOG.md";
 
+/// Tool for the `/changelog` slash command — generates a CHANGELOG entry from the diff.
 pub struct ChangelogTool;
 
 #[async_trait]

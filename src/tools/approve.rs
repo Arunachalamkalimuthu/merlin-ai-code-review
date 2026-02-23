@@ -7,6 +7,7 @@ use super::{MerlinTool, ToolContext};
 use crate::diff::parse_diff;
 use crate::error::Result;
 
+/// Tool for the `/approve` slash command — approves a PR/MR.
 pub struct ApproveTool;
 
 #[async_trait]

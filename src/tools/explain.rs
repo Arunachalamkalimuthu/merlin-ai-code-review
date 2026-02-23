@@ -8,6 +8,7 @@ use crate::diff::parse_diff;
 use crate::digest::prioritize_diffs;
 use crate::error::Result;
 
+/// Tool for the `/explain` slash command — explains the changes in plain language.
 pub struct ExplainTool;
 
 #[async_trait]

@@ -56,19 +56,28 @@ pub enum LineKind {
 /// A single diff hunk.
 #[derive(Debug, Clone)]
 pub struct Hunk {
+    /// First line number in the old file for this hunk.
     pub old_start: u32,
+    /// Number of lines from the old file included in this hunk.
     pub old_count: u32,
+    /// First line number in the new file for this hunk.
     pub new_start: u32,
+    /// Number of lines in the new file for this hunk.
     pub new_count: u32,
-    pub header_suffix: String, // optional function context after @@
+    /// Optional function-context string following the `@@` markers.
+    pub header_suffix: String,
+    /// The diff lines that make up this hunk.
     pub lines: Vec<HunkLine>,
 }
 
 /// Represents all hunks for one file in the diff.
 #[derive(Debug, Clone)]
 pub struct FileDiff {
+    /// Path of the file in the base (old) revision.
     pub old_path: String,
+    /// Path of the file in the head (new) revision.
     pub new_path: String,
+    /// Ordered list of diff hunks for this file.
     pub hunks: Vec<Hunk>,
     /// True when the file is newly created.
     pub is_new: bool,

@@ -14,6 +14,7 @@ use super::{MerlinTool, ToolContext};
 use crate::error::Result;
 use crate::integrations::codetriage::CodeTriageClient;
 
+/// Tool for the `/triage` slash command — triages PR risk and priority.
 pub struct TriageTool;
 
 #[async_trait]

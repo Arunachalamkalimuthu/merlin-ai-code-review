@@ -7,6 +7,7 @@ use super::{MerlinTool, ToolContext};
 use crate::diff::parse_diff;
 use crate::error::{MerlinError, Result};
 
+/// Tool for the `/ask` slash command — answers free-form questions about the diff.
 pub struct AskTool;
 
 #[async_trait]

@@ -17,6 +17,7 @@ use crate::error::{MerlinError, Result};
 
 const LINEAR_API_URL: &str = "https://api.linear.app/graphql";
 
+/// HTTP client for the Linear GraphQL API.
 pub struct LinearClient {
     config: LinearConfig,
     api_key: String,
@@ -26,10 +27,15 @@ pub struct LinearClient {
 /// A Linear issue summary.
 #[derive(Debug, Clone)]
 pub struct LinearIssue {
+    /// Internal Linear UUID.
     pub id: String,
+    /// Human-readable identifier (e.g. `"ENG-42"`).
     pub identifier: String,
+    /// Issue title.
     pub title: String,
+    /// Current workflow state name.
     pub state: String,
+    /// URL to view the issue in Linear.
     pub url: String,
 }
 
@@ -55,6 +61,7 @@ struct GraphqlError {
 // ─────────────────────────────────────────────────────────────────────────────
 
 impl LinearClient {
+    /// Create a new Linear client with the given config and API key.
     pub fn new(config: LinearConfig, api_key: String) -> Self {
         Self {
             config,

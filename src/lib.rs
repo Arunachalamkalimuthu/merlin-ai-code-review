@@ -6,7 +6,8 @@
 //! # Features
 //!
 //! - **Multi-provider AI** — Anthropic Claude, OpenAI GPT-4o, Google Gemini,
-//!   AWS Bedrock, Azure OpenAI, Ollama, Claude Code CLI
+//!   AWS Bedrock, Azure OpenAI, Ollama, Claude Code CLI, Groq, Together AI,
+//!   DeepSeek, Mistral AI, OpenRouter (12 providers total)
 //! - **Multi-platform VCS** — GitHub, GitLab, Bitbucket, Azure DevOps, Gitea
 //! - **Slash commands** — `/review`, `/security`, `/spec`, `/describe`, `/ask`, and more
 //! - **RAG context injection** — embed your codebase, retrieve similar code per diff chunk
@@ -75,7 +76,7 @@
 //!
 //! | Module | Purpose |
 //! |--------|---------|
-//! | [`ai`] | AI provider trait and all backend implementations |
+//! | [`ai`] | AI provider trait and all 12 backend implementations |
 //! | [`config`] | Configuration schema, TOML loading, env-var credential helpers |
 //! | [`diff`] | Unified diff parser producing [`diff::FileDiff`] structs |
 //! | [`digest`] | Token budgeting, file prioritisation, complexity scoring |
@@ -89,6 +90,9 @@
 //! | [`error`] | Unified [`error::MerlinError`] type and [`error::Result`] alias |
 //! | [`integrations`] | Third-party clients: Jira, Linear, Snyk, CodeTriage |
 //! | [`dashboard`] | Optional web dashboard for audit log visualisation |
+//! | [`update`] | Self-update checker against the latest GitHub release |
+
+#![warn(missing_docs)]
 
 pub mod agent;
 pub mod ai;

@@ -68,9 +68,13 @@ pub struct Document {
 /// A single retrieval result from the vector store.
 #[derive(Debug, Clone)]
 pub struct RetrievedDoc {
+    /// Text content of the retrieved document chunk.
     pub content: String,
+    /// Source file path or identifier.
     pub source: String,
+    /// Cosine similarity score (0.0–1.0).
     pub score: f32,
+    /// Arbitrary metadata attached during indexing.
     pub metadata: serde_json::Value,
 }
 
@@ -79,6 +83,7 @@ pub struct RetrievedDoc {
 /// Produces dense embedding vectors from text.
 #[async_trait]
 pub trait Embedder: Send + Sync {
+    /// Embed `text` into a fixed-length vector.
     async fn embed(&self, text: &str) -> Result<Embedding>;
 }
 
@@ -111,12 +116,16 @@ pub trait VectorStore: Send + Sync {
 
 /// Top-level RAG pipeline: ties together embedder, store, and config.
 pub struct RagPipeline {
+    /// Embedding backend (Ollama or OpenAI).
     pub embedder: Box<dyn Embedder>,
+    /// Vector store backend.
     pub store: Box<dyn VectorStore>,
+    /// RAG configuration (top-k, min score, etc.).
     pub config: RagConfig,
 }
 
 impl RagPipeline {
+    /// Create a new RAG pipeline with the given embedder, store, and config.
     pub fn new(
         embedder: Box<dyn Embedder>,
         store: Box<dyn VectorStore>,

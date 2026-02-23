@@ -25,6 +25,7 @@ use crate::error::{MerlinError, Result};
 
 const DEFAULT_API_VERSION: &str = "2024-02-01";
 
+/// AI provider for Azure OpenAI Service.
 pub struct AzureOpenAiProvider {
     api_key: String,
     config: AiConfig,
@@ -32,6 +33,7 @@ pub struct AzureOpenAiProvider {
 }
 
 impl AzureOpenAiProvider {
+    /// Create a new Azure OpenAI provider from the given API key and config.
     pub fn new(api_key: String, config: AiConfig) -> Self {
         Self {
             api_key,

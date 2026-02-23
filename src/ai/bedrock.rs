@@ -30,6 +30,7 @@ const DEFAULT_REGION: &str = "us-east-1";
 const SERVICE: &str = "bedrock";
 const BEDROCK_SERVICE: &str = "bedrock-runtime";
 
+/// AI provider for Amazon Bedrock (Claude models via SigV4 auth).
 pub struct BedrockProvider {
     access_key: String,
     secret_key: String,
@@ -39,6 +40,7 @@ pub struct BedrockProvider {
 }
 
 impl BedrockProvider {
+    /// Create a new Bedrock provider from credentials and config.
     pub fn new(
         access_key: String,
         secret_key: String,

@@ -7,6 +7,7 @@ use super::{MerlinTool, ToolContext};
 use crate::error::Result;
 use crate::integrations::snyk::{extract_packages_from_diff, SnykClient};
 
+/// Tool for the `/snyk` slash command — runs a Snyk vulnerability scan.
 pub struct SnykTool;
 
 #[async_trait]

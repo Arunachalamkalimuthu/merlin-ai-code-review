@@ -28,6 +28,7 @@ pub enum EventKind {
 pub struct AuditEvent {
     /// RFC 3339 timestamp (UTC).
     pub timestamp: String,
+    /// The type of event that occurred.
     pub kind: EventKind,
     /// Platform (github, gitlab, etc.)
     pub platform: Option<String>,

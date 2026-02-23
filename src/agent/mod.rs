@@ -35,16 +35,22 @@ use crate::platform::PlatformClient;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum MessageRole {
+    /// A system-level instruction message.
     System,
+    /// A message from the human user.
     User,
+    /// A message from the AI assistant.
     Assistant,
+    /// The result returned from a tool invocation.
     Tool,
 }
 
 /// A single message in the agent's conversation history.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentMessage {
+    /// The sender role for this message.
     pub role: MessageRole,
+    /// The text body of the message.
     pub content: String,
     /// Tool name — only set when role is `Tool`.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,6 +58,7 @@ pub struct AgentMessage {
 }
 
 impl AgentMessage {
+    /// Create a new user message with the given content.
     pub fn user(content: impl Into<String>) -> Self {
         Self {
             role: MessageRole::User,
@@ -60,6 +67,7 @@ impl AgentMessage {
         }
     }
 
+    /// Create a new assistant message with the given content.
     pub fn assistant(content: impl Into<String>) -> Self {
         Self {
             role: MessageRole::Assistant,
@@ -68,6 +76,7 @@ impl AgentMessage {
         }
     }
 
+    /// Create a tool-result message with the given tool name and output.
     pub fn tool_result(tool_name: impl Into<String>, output: impl Into<String>) -> Self {
         Self {
             role: MessageRole::Tool,
@@ -82,10 +91,14 @@ impl AgentMessage {
 /// A single parameter in an agent tool's schema.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolParameter {
+    /// Parameter name as passed to the tool.
     pub name: String,
+    /// JSON type of the parameter (e.g. `"string"`, `"number"`).
     #[serde(rename = "type")]
     pub param_type: String,
+    /// Human-readable description shown to the LLM.
     pub description: String,
+    /// Whether this parameter must be supplied by the LLM.
     #[serde(default)]
     pub required: bool,
 }
@@ -93,8 +106,11 @@ pub struct ToolParameter {
 /// Definition of a tool exposed to the LLM.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentToolDef {
+    /// Unique tool name (e.g. `"review_pr"`).
     pub name: String,
+    /// One-line description shown to the LLM.
     pub description: String,
+    /// Ordered list of parameters the LLM may supply.
     pub parameters: Vec<ToolParameter>,
 }
 
@@ -133,7 +149,9 @@ impl AgentToolDef {
 /// A tool invocation parsed from the LLM's output.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ToolCall {
+    /// Name of the tool to invoke.
     pub name: String,
+    /// JSON object of arguments supplied by the LLM.
     #[serde(default)]
     pub parameters: serde_json::Value,
 }
@@ -141,8 +159,11 @@ pub struct ToolCall {
 /// Result of executing an agent tool.
 #[derive(Debug, Clone)]
 pub struct ToolResult {
+    /// Name of the tool that produced this result.
     pub tool_name: String,
+    /// Text output returned by the tool.
     pub output: String,
+    /// Whether the tool ran without error.
     pub success: bool,
 }
 
@@ -151,8 +172,11 @@ pub struct ToolResult {
 /// Runtime context available to all agent tools during execution.
 #[derive(Clone)]
 pub struct AgentContext {
+    /// AI provider used by agent tools.
     pub ai: Arc<dyn AiProvider>,
+    /// Optional VCS platform client (absent for CLI-only agents).
     pub platform: Option<Arc<dyn PlatformClient>>,
+    /// Full Merlin configuration available to tools.
     pub config: Config,
 }
 

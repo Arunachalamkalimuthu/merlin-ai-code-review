@@ -9,6 +9,7 @@ use crate::diff::parse_diff;
 use crate::digest::build_pr_status;
 use crate::error::Result;
 
+/// Tool for the `/labels` slash command — suggests GitHub/GitLab labels for the PR.
 pub struct LabelsTool;
 
 #[derive(Deserialize)]
