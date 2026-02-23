@@ -23,7 +23,9 @@
 pub mod azure_devops;
 pub mod bitbucket;
 pub mod gitea;
+/// GitHub platform client implementation.
 pub mod github;
+/// GitLab platform client implementation.
 pub mod gitlab;
 
 use async_trait::async_trait;
@@ -41,27 +43,44 @@ use crate::error::{MerlinError, Result};
 /// on a particular platform are set to their zero values (`""`, `0`, `false`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PrInfo {
+    /// PR/MR number.
     pub number: u64,
+    /// PR/MR title.
     pub title: String,
+    /// PR/MR description body.
     pub body: String,
+    /// SHA of the head commit.
     pub head_sha: String,
+    /// Name of the base (target) branch.
     pub base_branch: String,
+    /// Name of the head (source) branch.
     pub head_branch: String,
+    /// Username of the PR/MR author.
     pub author: String,
+    /// Whether the PR/MR is in draft state.
     pub is_draft: bool,
+    /// Labels applied to the PR/MR.
     pub labels: Vec<String>,
+    /// Number of files changed in the PR/MR.
     pub files_changed: u32,
+    /// Total lines added.
     pub additions: u32,
+    /// Total lines deleted.
     pub deletions: u32,
 }
 
 /// A repository issue, returned by [`PlatformClient::list_issues`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Issue {
+    /// Issue number.
     pub number: u64,
+    /// Issue title.
     pub title: String,
+    /// Issue description body.
     pub body: String,
+    /// Labels applied to the issue.
     pub labels: Vec<String>,
+    /// Web URL of the issue.
     pub url: String,
 }
 
@@ -70,10 +89,15 @@ pub struct Issue {
 /// Passed to [`PlatformClient::post_code_suggestions`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InlineCodeSuggestion {
+    /// Repository-relative path of the file to annotate.
     pub file: String,
+    /// First line of the suggestion range (1-based).
     pub start_line: u32,
+    /// Last line of the suggestion range (1-based, inclusive).
     pub end_line: u32,
+    /// Replacement code to propose.
     pub suggestion: String,
+    /// Human-readable explanation shown above the suggestion block.
     pub description: String,
 }
 

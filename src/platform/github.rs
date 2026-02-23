@@ -8,6 +8,7 @@ use crate::error::{MerlinError, Result};
 
 const GITHUB_API: &str = "https://api.github.com";
 
+/// VCS platform client for GitHub (github.com and GitHub Enterprise).
 pub struct GitHubClient {
     token: String,
     repo: String, // "owner/repo"
@@ -18,6 +19,7 @@ pub struct GitHubClient {
 }
 
 impl GitHubClient {
+    /// Create a new GitHub client for the specified repo and PR.
     pub fn new(token: String, repo: String, pr_number: u64, head_sha: String) -> Self {
         Self {
             token,

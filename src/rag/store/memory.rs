@@ -19,11 +19,13 @@ struct Entry {
     metadata: serde_json::Value,
 }
 
+/// Ephemeral in-memory vector store — resets when the process exits.
 pub struct MemoryStore {
     index: RwLock<HashMap<String, Vec<Entry>>>,
 }
 
 impl MemoryStore {
+    /// Create a new empty in-memory store.
     pub fn new() -> Self {
         Self {
             index: RwLock::new(HashMap::new()),

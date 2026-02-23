@@ -15,12 +15,14 @@ use tracing::{debug, info, warn};
 use crate::error::{MerlinError, Result};
 use crate::rag::{Document, Embedding, RetrievedDoc, VectorStore};
 
+/// Vector store backed by a ChromaDB REST API.
 pub struct ChromaStore {
     base_url: String,
     client: reqwest::Client,
 }
 
 impl ChromaStore {
+    /// Create a new ChromaDB store connecting to `base_url`.
     pub fn new(base_url: String) -> Self {
         Self {
             base_url,

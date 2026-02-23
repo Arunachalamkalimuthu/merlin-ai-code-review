@@ -22,6 +22,7 @@ use super::{MerlinTool, ToolContext};
 use crate::diff::parse_diff;
 use crate::error::Result;
 
+/// Tool for the `/docs` slash command — generates documentation from the diff.
 pub struct DocsTool;
 
 /// The kind of documentation to generate.

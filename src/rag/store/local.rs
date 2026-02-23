@@ -41,6 +41,7 @@ struct Entry {
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
+/// Zero-dependency vector store that persists embeddings as a JSONL file.
 pub struct LocalStore {
     path: String,
     /// Per-collection in-memory index. Key = collection name.
@@ -48,6 +49,7 @@ pub struct LocalStore {
 }
 
 impl LocalStore {
+    /// Create a new local store backed by the JSONL file at `path`.
     pub fn new(path: String) -> Self {
         let index = load_from_file(&path);
         Self {

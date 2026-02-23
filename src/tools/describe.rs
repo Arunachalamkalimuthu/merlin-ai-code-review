@@ -7,6 +7,7 @@ use super::{MerlinTool, ToolContext};
 use crate::diff::parse_diff;
 use crate::error::Result;
 
+/// Tool for the `/describe` slash command — writes a PR description from the diff.
 pub struct DescribeTool;
 
 #[async_trait]

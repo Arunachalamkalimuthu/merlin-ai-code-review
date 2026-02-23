@@ -9,6 +9,7 @@ use crate::diff::{parse_diff, LineKind};
 use crate::error::Result;
 use crate::platform::InlineCodeSuggestion;
 
+/// Tool for the `/docstring` slash command — generates docstrings for changed functions.
 pub struct DocstringTool;
 
 #[derive(Deserialize)]

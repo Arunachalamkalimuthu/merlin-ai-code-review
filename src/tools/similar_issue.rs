@@ -7,6 +7,7 @@ use tracing::info;
 use super::{MerlinTool, ToolContext};
 use crate::error::Result;
 
+/// Tool for the `/similar-issue` slash command — finds similar open issues.
 pub struct SimilarIssueTool;
 
 #[derive(Deserialize)]

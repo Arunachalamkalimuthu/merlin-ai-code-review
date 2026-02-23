@@ -26,9 +26,12 @@ use std::sync::Arc;
 use crate::audit::AuditLogger;
 use crate::config::AuditConfig;
 
+/// Shared state for dashboard Axum handlers.
 #[derive(Clone)]
 pub struct DashboardState {
+    /// Audit logger used to fetch recent events.
     pub logger: Arc<AuditLogger>,
+    /// Crate version string embedded at compile time.
     pub version: &'static str,
 }
 

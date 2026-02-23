@@ -16,6 +16,7 @@ use super::{MerlinTool, ToolContext};
 use crate::diff::parse_diff;
 use crate::error::Result;
 
+/// Tool for the `/coverage` slash command — analyses coverage for changed files.
 pub struct CoverageTool;
 
 #[async_trait]

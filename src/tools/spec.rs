@@ -20,6 +20,7 @@ use crate::diff::parse_diff;
 use crate::digest::compress_diff;
 use crate::error::Result;
 
+/// Tool for the `/spec` slash command — generates a technical specification from the diff.
 pub struct SpecTool;
 
 #[async_trait]

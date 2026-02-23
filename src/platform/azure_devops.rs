@@ -16,6 +16,7 @@ use crate::error::{MerlinError, Result};
 
 const API_VERSION: &str = "7.1";
 
+/// VCS platform client for Azure DevOps Services and Server.
 pub struct AzureDevOpsClient {
     token: String,
     /// e.g. `https://dev.azure.com/myorg`
@@ -29,6 +30,7 @@ pub struct AzureDevOpsClient {
 }
 
 impl AzureDevOpsClient {
+    /// Create a new Azure DevOps client from the given parameters.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         token: String,

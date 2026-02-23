@@ -22,27 +22,35 @@ use tracing::info;
 
 // ── RBAC ──────────────────────────────────────────────────────────────────────
 
+/// User role for the admin panel RBAC.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Role {
+    /// Full admin access.
     Admin,
+    /// Read-only reviewer access.
     Reviewer,
+    /// Read-only view access.
     Viewer,
 }
 
 impl Role {
+    /// Returns `true` if this role may modify data.
     pub fn can_write(&self) -> bool {
         matches!(self, Role::Admin | Role::Reviewer)
     }
+    /// Returns `true` if this role has full admin privileges.
     pub fn can_admin(&self) -> bool {
         matches!(self, Role::Admin)
     }
 }
 
+/// An admin panel user with an identity and role.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct User {
     /// GitHub/GitLab username or email.
     pub identity: String,
+    /// Role assigned to this user.
     pub role: Role,
     /// When this user was added (RFC 3339).
     pub added_at: String,
@@ -50,8 +58,10 @@ pub struct User {
 
 // ── Custom review rules ────────────────────────────────────────────────────────
 
+/// A custom review rule applied during code review.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReviewRule {
+    /// Unique identifier for this rule.
     pub id: String,
     /// Human-readable name.
     pub name: String,
@@ -61,19 +71,25 @@ pub struct ReviewRule {
     pub severity: String,
     /// Optional: only apply to files matching this glob pattern.
     pub file_pattern: Option<String>,
+    /// Whether this rule is currently active.
     pub enabled: bool,
+    /// Timestamp when the rule was created (RFC 3339).
     pub created_at: String,
 }
 
 // ── Persisted admin state ─────────────────────────────────────────────────────
 
+/// Persistent admin state (rules + users).
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct AdminState {
+    /// Active review rules.
     pub rules: Vec<ReviewRule>,
+    /// Registered admin users.
     pub users: Vec<User>,
 }
 
 impl AdminState {
+    /// Load admin state from a JSON file, or return empty defaults.
     pub fn load(path: &str) -> Self {
         std::fs::read_to_string(path)
             .ok()
@@ -81,6 +97,7 @@ impl AdminState {
             .unwrap_or_default()
     }
 
+    /// Persist admin state to a JSON file.
     pub fn save(&self, path: &str) {
         if let Ok(json) = serde_json::to_string_pretty(self) {
             let _ = std::fs::write(path, json);
@@ -90,13 +107,17 @@ impl AdminState {
 
 // ── Shared state ──────────────────────────────────────────────────────────────
 
+/// Thread-safe shared admin state for Axum handlers.
 #[derive(Clone)]
 pub struct SharedAdminState {
+    /// Inner state protected by a read-write lock.
     pub inner: Arc<RwLock<AdminState>>,
+    /// Path to the JSON persistence file.
     pub persist_path: String,
 }
 
 impl SharedAdminState {
+    /// Create a new shared admin state, loading from `persist_path` if it exists.
     pub fn new(persist_path: String) -> Self {
         let inner = AdminState::load(&persist_path);
         Self {
@@ -114,22 +135,31 @@ impl SharedAdminState {
 
 // ── Request/response types ────────────────────────────────────────────────────
 
+/// Request body for creating a new review rule.
 #[derive(Deserialize)]
 pub struct CreateRuleRequest {
+    /// Human-readable rule name.
     pub name: String,
+    /// Instruction text injected into the AI system prompt.
     pub instruction: String,
+    /// Severity level for violations (defaults to `"medium"`).
     pub severity: Option<String>,
+    /// Optional glob pattern restricting which files the rule applies to.
     pub file_pattern: Option<String>,
 }
 
+/// Request body for adding or updating an admin user.
 #[derive(Deserialize)]
 pub struct CreateUserRequest {
+    /// GitHub/GitLab username or email to identify the user.
     pub identity: String,
+    /// Role to assign to the user.
     pub role: Role,
 }
 
 // ── Router ────────────────────────────────────────────────────────────────────
 
+/// Build the Axum admin panel sub-router.
 pub fn admin_router(state: SharedAdminState) -> Router {
     Router::new()
         .route("/admin", get(admin_html))
