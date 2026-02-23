@@ -116,8 +116,26 @@ pub async fn github_handler(
         return StatusCode::INTERNAL_SERVER_ERROR;
     };
 
-    // We need the head SHA — fetch it lazily (use env fallback or a separate API call)
-    let head_sha = std::env::var("GITHUB_SHA").unwrap_or_else(|_| "HEAD".to_string());
+    // In GitHub Actions GITHUB_SHA is injected automatically; in webhook/bot mode
+    // it is not present, so we fetch the real head SHA from the GitHub API.
+    let head_sha = match std::env::var("GITHUB_SHA") {
+        Ok(sha) => sha,
+        Err(_) => {
+            match crate::platform::github::fetch_pr_head_sha(
+                token,
+                &event.repository.full_name,
+                event.issue.number,
+            )
+            .await
+            {
+                Ok(sha) => sha,
+                Err(e) => {
+                    warn!("Failed to fetch PR head SHA: {e}");
+                    return StatusCode::INTERNAL_SERVER_ERROR;
+                }
+            }
+        }
+    };
     let client = Arc::new(GitHubClient::new(
         token.clone(),
         event.repository.full_name,

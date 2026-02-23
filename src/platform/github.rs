@@ -58,6 +58,32 @@ impl GitHubClient {
     }
 }
 
+/// Fetch the head commit SHA of a pull request.
+///
+/// Used by the webhook handler, which has no access to the `GITHUB_SHA`
+/// environment variable that GitHub Actions injects automatically.
+pub async fn fetch_pr_head_sha(token: &str, repo: &str, pr_number: u64) -> crate::error::Result<String> {
+    #[derive(Deserialize)]
+    struct Ref { sha: String }
+    #[derive(Deserialize)]
+    struct PrHead { head: Ref }
+
+    let url = format!("{GITHUB_API}/repos/{repo}/pulls/{pr_number}");
+    let pr: PrHead = reqwest::Client::new()
+        .get(&url)
+        .header("Authorization", format!("Bearer {token}"))
+        .header("Accept", "application/vnd.github.v3+json")
+        .header("User-Agent", "merlin-review/0.1")
+        .send()
+        .await?
+        .error_for_status()
+        .map_err(|e| crate::error::MerlinError::Platform(format!("Failed to fetch PR head SHA: {e}")))?
+        .json()
+        .await?;
+
+    Ok(pr.head.sha)
+}
+
 // ── GitHub API response types ─────────────────────────────────────────────────
 
 #[derive(Deserialize)]
