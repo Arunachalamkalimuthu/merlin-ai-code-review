@@ -26,6 +26,7 @@ pub mod describe;
 pub mod docs;
 pub mod docstring;
 pub mod explain;
+pub mod fix;
 pub mod improve;
 pub mod labels;
 pub mod link_jira;
@@ -120,6 +121,7 @@ pub fn route_command(command: &str) -> Result<Box<dyn MerlinTool>> {
         "/snyk" => Ok(Box::new(snyk::SnykTool)),
         "/spec" => Ok(Box::new(spec::SpecTool)),
         "/triage" => Ok(Box::new(triage::TriageTool)),
+        "/fix" => Ok(Box::new(fix::FixTool)),
         other => Err(MerlinError::Other(format!("Unknown command: {other}"))),
     }
 }
@@ -222,6 +224,7 @@ mod tests {
             "/snyk",
             "/spec",
             "/triage",
+            "/fix",
         ] {
             assert!(route_command(cmd).is_ok(), "Failed to route: {cmd}");
         }

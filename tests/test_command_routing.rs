@@ -80,6 +80,7 @@ fn route_all_known_commands() {
         "/link_linear",
         "/snyk",
         "/triage",
+        "/fix",
     ];
 
     for cmd in &commands {

@@ -381,6 +381,7 @@ impl PlatformClient for BitbucketClient {
         content: &str,
         message: &str,
         _current_sha: Option<&str>,
+        _branch: Option<&str>,
     ) -> Result<()> {
         // Bitbucket uses multipart form to update files
         let url = self.repo_url("src");

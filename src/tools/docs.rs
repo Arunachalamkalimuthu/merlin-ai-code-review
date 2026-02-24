@@ -158,6 +158,7 @@ async fn generate_readme(
                 &updated,
                 &format!("docs: update README for PR #{}", pr_info.number),
                 Some(&sha),
+                None,
             )
             .await;
         "README.md has been updated with the new section."
@@ -254,7 +255,7 @@ async fn generate_adr(
     let adr_path = format!("docs/adr/adr-pr{}.md", pr_info.number);
     let _ = ctx
         .platform
-        .update_file(&adr_path, &adr, "docs: add ADR", None)
+        .update_file(&adr_path, &adr, "docs: add ADR", None, None)
         .await;
 
     Ok(format!(

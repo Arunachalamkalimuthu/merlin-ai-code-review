@@ -89,6 +89,7 @@ impl MerlinTool for ChangelogTool {
                 &updated,
                 &format!("docs: update changelog for PR #{}", pr_info.number),
                 sha_opt,
+                None,
             )
             .await?;
 

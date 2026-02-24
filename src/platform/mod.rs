@@ -91,6 +91,21 @@ pub struct InlineCodeSuggestion {
     pub description: String,
 }
 
+/// A pre-existing PR review comment, returned by
+/// [`PlatformClient::list_review_comments`].
+///
+/// Used by the engine to avoid re-posting comments that are still open on the
+/// same file + line (i.e. the developer has not yet resolved them).
+#[derive(Debug, Clone)]
+pub struct ExistingComment {
+    /// File path the comment is on (relative to the repo root).
+    pub file: String,
+    /// Line number in the new version of the file.
+    pub line: u32,
+    /// First 80 characters of the comment body, used for fingerprinting.
+    pub body_snippet: String,
+}
+
 // ── Platform trait ────────────────────────────────────────────────────────────
 
 /// Trait implemented by all VCS platform backends.
@@ -106,10 +121,23 @@ pub trait PlatformClient: Send + Sync {
     /// Post the overall review summary as a PR/MR comment.
     async fn post_summary(&self, summary: &str) -> Result<()>;
 
+    /// List the current inline review comments on the PR/MR.
+    ///
+    /// Used by the engine to filter out comments that are already present,
+    /// preventing duplicate re-posts when the developer has not yet resolved
+    /// them.  The default returns an empty list (no deduplication).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::error::MerlinError::Platform`] if the API call fails.
+    async fn list_review_comments(&self) -> Result<Vec<ExistingComment>> {
+        Ok(vec![])
+    }
+
     /// Submit all review comments and a summary in a single batched operation.
     ///
-    /// The default implementation calls [`post_inline_comment`] for each
-    /// comment and then [`post_summary`].  Platforms that support a native
+    /// The default implementation calls [`Self::post_inline_comment`] for each
+    /// comment and then [`Self::post_summary`].  Platforms that support a native
     /// batch review API (e.g. GitHub Pull Request Reviews) should override this
     /// to collapse N notifications into one.
     ///
@@ -131,6 +159,22 @@ pub trait PlatformClient: Send + Sync {
         self.post_summary(summary).await
     }
 
+    /// Post a GitHub Checks API check-run that surfaces results as a
+    /// pass/fail badge integrated with branch protection.
+    ///
+    /// The default implementation is a no-op so other platforms are unaffected.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::error::MerlinError::Platform`] if the API call fails.
+    async fn post_check_run(
+        &self,
+        _comments: &[ReviewComment],
+        _summary: &str,
+    ) -> Result<()> {
+        Ok(())
+    }
+
     // ── PR metadata ops ───────────────────────────────────────────────────
     /// Get PR/MR metadata (title, body, labels, stats).
     async fn get_pr_info(&self) -> Result<PrInfo>;
@@ -150,16 +194,35 @@ pub trait PlatformClient: Send + Sync {
     async fn post_code_suggestions(&self, suggestions: &[InlineCodeSuggestion]) -> Result<()>;
 
     /// Update a file in the repository (for changelog etc.).
+    ///
+    /// When `branch` is `Some`, the update is committed to that branch.
+    /// Passing `None` commits to the repository's default branch.
     async fn update_file(
         &self,
         path: &str,
         content: &str,
         message: &str,
         current_sha: Option<&str>,
+        branch: Option<&str>,
     ) -> Result<()>;
 
     /// Get a file's content and SHA from the repo.
     async fn get_file(&self, path: &str) -> Result<Option<(String, String)>>;
+
+    /// Create a new branch from `from_sha`.
+    ///
+    /// The default returns an error so callers know the platform does not
+    /// support programmatic branch creation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::error::MerlinError::Platform`] if unsupported or
+    /// if the API call fails.
+    async fn create_branch(&self, _name: &str, _from_sha: &str) -> Result<()> {
+        Err(MerlinError::Platform(
+            "create_branch is not supported on this platform".to_string(),
+        ))
+    }
 }
 
 // ── Factory ───────────────────────────────────────────────────────────────────
@@ -250,7 +313,14 @@ impl PlatformClient for NoOpPlatform {
     async fn post_code_suggestions(&self, _s: &[InlineCodeSuggestion]) -> Result<()> {
         Ok(())
     }
-    async fn update_file(&self, _p: &str, _c: &str, _m: &str, _sha: Option<&str>) -> Result<()> {
+    async fn update_file(
+        &self,
+        _p: &str,
+        _c: &str,
+        _m: &str,
+        _sha: Option<&str>,
+        _branch: Option<&str>,
+    ) -> Result<()> {
         Ok(())
     }
     async fn get_file(&self, _path: &str) -> Result<Option<(String, String)>> {
