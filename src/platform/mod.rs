@@ -159,6 +159,22 @@ pub trait PlatformClient: Send + Sync {
         self.post_summary(summary).await
     }
 
+    /// Post a GitHub Checks API check-run that surfaces results as a
+    /// pass/fail badge integrated with branch protection.
+    ///
+    /// The default implementation is a no-op so other platforms are unaffected.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::error::MerlinError::Platform`] if the API call fails.
+    async fn post_check_run(
+        &self,
+        _comments: &[ReviewComment],
+        _summary: &str,
+    ) -> Result<()> {
+        Ok(())
+    }
+
     // ── PR metadata ops ───────────────────────────────────────────────────
     /// Get PR/MR metadata (title, body, labels, stats).
     async fn get_pr_info(&self) -> Result<PrInfo>;

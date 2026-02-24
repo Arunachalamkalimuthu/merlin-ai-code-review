@@ -199,6 +199,13 @@ impl ReviewEngine {
             .submit_review(&comments, &summary, action)
             .await?;
 
+        // 10. Post a GitHub Checks API check-run (pass/fail badge)
+        if self.config.checks_enabled {
+            if let Err(e) = self.platform.post_check_run(&comments, &summary).await {
+                warn!("Failed to post check run (non-fatal): {e}");
+            }
+        }
+
         info!("Review complete — {} comments posted", comments.len());
 
         // Persist incremental cache so next run can skip unchanged files

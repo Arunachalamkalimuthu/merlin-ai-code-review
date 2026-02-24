@@ -177,6 +177,10 @@ pub struct ReviewConfig {
     /// Path to the incremental review cache file (default: `".merlin-cache.json"`).
     #[serde(default = "default_cache_path")]
     pub cache_path: String,
+    /// Post a GitHub Checks API `check-run` alongside the review so results
+    /// appear as a pass/fail badge in branch protection rules (default: `true`).
+    #[serde(default = "default_checks_enabled")]
+    pub checks_enabled: bool,
 }
 
 fn default_focus() -> Vec<String> {
@@ -200,6 +204,10 @@ fn default_cache_path() -> String {
     ".merlin-cache.json".to_string()
 }
 
+fn default_checks_enabled() -> bool {
+    true
+}
+
 impl Default for ReviewConfig {
     fn default() -> Self {
         ReviewConfig {
@@ -210,6 +218,7 @@ impl Default for ReviewConfig {
             persona: PersonaConfig::default(),
             incremental: false,
             cache_path: default_cache_path(),
+            checks_enabled: default_checks_enabled(),
         }
     }
 }
