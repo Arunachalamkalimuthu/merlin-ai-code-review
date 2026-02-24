@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
 
-use super::{InlineCodeSuggestion, Issue, PlatformClient, PrInfo};
+use super::{InlineCodeSuggestion, Issue, PlatformClient, PrInfo, ReviewAction};
 use crate::ai::ReviewComment;
 use crate::error::{MerlinError, Result};
 
@@ -142,6 +142,24 @@ struct UpdateFileBody<'a> {
     content: String, // base64
     #[serde(skip_serializing_if = "Option::is_none")]
     sha: Option<&'a str>,
+}
+
+/// A single inline comment included in a batch pull-request review.
+#[derive(Serialize)]
+struct BatchReviewComment {
+    path: String,
+    line: u32,
+    side: String,
+    body: String,
+}
+
+/// Request body for `POST /repos/{repo}/pulls/{pr}/reviews`.
+#[derive(Serialize)]
+struct BatchReviewBody {
+    commit_id: String,
+    body: String,
+    event: String,
+    comments: Vec<BatchReviewComment>,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -429,6 +447,61 @@ impl PlatformClient for GitHubClient {
             .map_err(|e| MerlinError::Platform(format!("Base64 decode error: {e}")))?;
         let content = String::from_utf8_lossy(&bytes).into_owned();
         Ok(Some((content, file.sha)))
+    }
+
+    #[instrument(skip(self, comments, summary))]
+    async fn submit_review(
+        &self,
+        comments: &[ReviewComment],
+        summary: &str,
+        action: ReviewAction,
+    ) -> Result<()> {
+        let url = self.api(&format!(
+            "repos/{}/pulls/{}/reviews",
+            self.repo, self.pr_number
+        ));
+
+        let event = match action {
+            ReviewAction::Approve => "APPROVE",
+            ReviewAction::RequestChanges => "REQUEST_CHANGES",
+            ReviewAction::Comment => "COMMENT",
+        };
+
+        let batch_comments: Vec<BatchReviewComment> = comments
+            .iter()
+            .filter(|c| c.line > 0)
+            .map(|c| {
+                let emoji = severity_emoji(&c.severity);
+                let body = format_comment(emoji, c);
+                BatchReviewComment {
+                    path: c.file.clone(),
+                    line: c.line,
+                    side: "RIGHT".to_string(),
+                    body,
+                }
+            })
+            .collect();
+
+        let payload = BatchReviewBody {
+            commit_id: self.head_sha.clone(),
+            body: summary.to_string(),
+            event: event.to_string(),
+            comments: batch_comments,
+        };
+
+        self.client
+            .post(&url)
+            .header("Authorization", self.auth_header())
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "merlin-review/0.1")
+            .json(&payload)
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| {
+                MerlinError::Platform(format!("Failed to submit batch review: {e}"))
+            })?;
+        Ok(())
     }
 }
 

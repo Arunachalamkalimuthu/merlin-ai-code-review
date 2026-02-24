@@ -29,7 +29,7 @@ use crate::config::ReviewConfig;
 use crate::diff::{parse_diff, FileDiff};
 use crate::digest::complexity_score;
 use crate::error::Result;
-use crate::platform::PlatformClient;
+use crate::platform::{PlatformClient, ReviewAction};
 use crate::rag::RagPipeline;
 
 /// Orchestrates a complete code-review cycle.
@@ -129,16 +129,12 @@ impl ReviewEngine {
             comments.truncate(self.config.max_comments);
         }
 
-        // 8. Post inline comments
-        for comment in &comments {
-            if let Err(e) = self.platform.post_inline_comment(comment).await {
-                warn!("Failed to post inline comment on {}: {e}", comment.file);
-            }
-        }
-
-        // 9. Post summary (including complexity)
+        // 8+9. Submit all comments and summary as a single batched review
         let summary = build_summary(&comments, Some(&complexity));
-        self.platform.post_summary(&summary).await?;
+        let action = determine_review_action(&comments);
+        self.platform
+            .submit_review(&comments, &summary, action)
+            .await?;
 
         info!("Review complete — {} comments posted", comments.len());
         Ok(comments)
@@ -276,6 +272,24 @@ impl ReviewEngine {
         }
 
         Ok(all_comments)
+    }
+}
+
+/// Choose the appropriate [`ReviewAction`] from the comment list.
+///
+/// - Zero issues → [`ReviewAction::Approve`]
+/// - Any Critical or High issue → [`ReviewAction::RequestChanges`]
+/// - Otherwise → [`ReviewAction::Comment`]
+fn determine_review_action(comments: &[ReviewComment]) -> ReviewAction {
+    if comments.is_empty() {
+        ReviewAction::Approve
+    } else if comments
+        .iter()
+        .any(|c| matches!(c.severity, Severity::Critical | Severity::High))
+    {
+        ReviewAction::RequestChanges
+    } else {
+        ReviewAction::Comment
     }
 }
 
