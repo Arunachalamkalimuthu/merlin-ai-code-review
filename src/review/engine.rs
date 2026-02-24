@@ -165,6 +165,33 @@ impl ReviewEngine {
             comments.truncate(self.config.max_comments);
         }
 
+        // 7.5. Filter out comments that are already posted (not yet resolved)
+        let comments = {
+            let existing = match self.platform.list_review_comments().await {
+                Ok(existing) => existing,
+                Err(e) => {
+                    warn!("Could not fetch existing review comments (skipping dedup): {e}");
+                    vec![]
+                }
+            };
+            let existing_fps: HashSet<String> = existing
+                .iter()
+                .map(|e| format!("{}:{}", e.file, e.line))
+                .collect();
+            let before = comments.len();
+            let filtered: Vec<ReviewComment> = comments
+                .into_iter()
+                .filter(|c| !existing_fps.contains(&format!("{}:{}", c.file, c.line)))
+                .collect();
+            if filtered.len() < before {
+                info!(
+                    "{} comment(s) skipped — already posted on this PR",
+                    before - filtered.len()
+                );
+            }
+            filtered
+        };
+
         // 8+9. Submit all comments and summary as a single batched review
         let summary = build_summary(&comments, Some(&complexity));
         let action = determine_review_action(&comments);

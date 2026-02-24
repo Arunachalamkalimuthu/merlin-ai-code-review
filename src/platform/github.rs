@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
 
-use super::{InlineCodeSuggestion, Issue, PlatformClient, PrInfo, ReviewAction};
+use super::{ExistingComment, InlineCodeSuggestion, Issue, PlatformClient, PrInfo, ReviewAction};
 use crate::ai::ReviewComment;
 use crate::error::{MerlinError, Result};
 
@@ -109,6 +109,16 @@ struct GitHubIssue {
 struct GitHubFileContent {
     content: String,
     sha: String,
+}
+
+/// A single existing PR review comment returned by
+/// `GET /repos/{repo}/pulls/{pr}/comments`.
+#[derive(Deserialize)]
+struct GitHubReviewComment {
+    path: String,
+    /// Line in the **new** file (`null` for comments on removed lines).
+    line: Option<u32>,
+    body: String,
 }
 
 #[derive(Serialize)]
@@ -447,6 +457,37 @@ impl PlatformClient for GitHubClient {
             .map_err(|e| MerlinError::Platform(format!("Base64 decode error: {e}")))?;
         let content = String::from_utf8_lossy(&bytes).into_owned();
         Ok(Some((content, file.sha)))
+    }
+
+    #[instrument(skip(self))]
+    async fn list_review_comments(&self) -> Result<Vec<ExistingComment>> {
+        let url = self.api(&format!(
+            "repos/{}/pulls/{}/comments?per_page=100",
+            self.repo, self.pr_number
+        ));
+        let raw: Vec<GitHubReviewComment> = self
+            .client
+            .get(&url)
+            .header("Authorization", self.auth_header())
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "merlin-review/0.1")
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| MerlinError::Platform(format!("Failed to list review comments: {e}")))?
+            .json()
+            .await?;
+
+        Ok(raw
+            .into_iter()
+            .filter_map(|c| {
+                c.line.map(|line| ExistingComment {
+                    file: c.path,
+                    line,
+                    body_snippet: c.body.chars().take(80).collect(),
+                })
+            })
+            .collect())
     }
 
     #[instrument(skip(self, comments, summary))]

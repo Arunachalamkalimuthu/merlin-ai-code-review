@@ -91,6 +91,21 @@ pub struct InlineCodeSuggestion {
     pub description: String,
 }
 
+/// A pre-existing PR review comment, returned by
+/// [`PlatformClient::list_review_comments`].
+///
+/// Used by the engine to avoid re-posting comments that are still open on the
+/// same file + line (i.e. the developer has not yet resolved them).
+#[derive(Debug, Clone)]
+pub struct ExistingComment {
+    /// File path the comment is on (relative to the repo root).
+    pub file: String,
+    /// Line number in the new version of the file.
+    pub line: u32,
+    /// First 80 characters of the comment body, used for fingerprinting.
+    pub body_snippet: String,
+}
+
 // ── Platform trait ────────────────────────────────────────────────────────────
 
 /// Trait implemented by all VCS platform backends.
@@ -105,6 +120,19 @@ pub trait PlatformClient: Send + Sync {
 
     /// Post the overall review summary as a PR/MR comment.
     async fn post_summary(&self, summary: &str) -> Result<()>;
+
+    /// List the current inline review comments on the PR/MR.
+    ///
+    /// Used by the engine to filter out comments that are already present,
+    /// preventing duplicate re-posts when the developer has not yet resolved
+    /// them.  The default returns an empty list (no deduplication).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::error::MerlinError::Platform`] if the API call fails.
+    async fn list_review_comments(&self) -> Result<Vec<ExistingComment>> {
+        Ok(vec![])
+    }
 
     /// Submit all review comments and a summary in a single batched operation.
     ///
