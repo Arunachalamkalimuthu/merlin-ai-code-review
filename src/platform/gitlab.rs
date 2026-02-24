@@ -6,6 +6,7 @@ use super::{InlineCodeSuggestion, Issue, PlatformClient, PrInfo};
 use crate::ai::ReviewComment;
 use crate::error::{MerlinError, Result};
 
+/// VCS platform client for GitLab (gitlab.com and self-hosted).
 pub struct GitLabClient {
     token: String,
     base_url: String,
@@ -16,6 +17,7 @@ pub struct GitLabClient {
 }
 
 impl GitLabClient {
+    /// Create a new GitLab client from the given parameters.
     pub fn new(
         token: String,
         base_url: String,
@@ -33,6 +35,7 @@ impl GitLabClient {
         }
     }
 
+    /// Create a GitLab client by reading credentials from CI environment variables.
     pub fn from_env(token: String) -> Result<Self> {
         let base_url = std::env::var("CI_API_V4_URL")
             .unwrap_or_else(|_| "https://gitlab.com/api/v4".to_string());
@@ -409,7 +412,10 @@ fn format_comment(emoji: &str, c: &ReviewComment) -> String {
         suggestion = c
             .suggestion
             .as_deref()
-            .map(|s| format!("\n\n**Suggestion:**\n```\n{s}\n```"))
+            .map(|s| {
+                let s = crate::platform::strip_suggestion_fences(s);
+                format!("\n\n**Suggestion:**\n```\n{s}\n```")
+            })
             .unwrap_or_default(),
     )
 }

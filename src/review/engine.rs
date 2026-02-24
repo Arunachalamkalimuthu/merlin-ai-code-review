@@ -19,7 +19,6 @@
 //! When a [`RagPipeline`] is attached via [`ReviewEngine::with_rag`], each
 //! diff chunk is enriched with the top-K semantically similar documents from
 //! the codebase index before being sent to the AI.
-use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::{info, warn};
@@ -32,6 +31,8 @@ use crate::error::Result;
 use crate::platform::{PlatformClient, ReviewAction};
 use crate::rag::RagPipeline;
 use crate::review::cache::{diff_hash, ReviewCache};
+
+use super::filter::{build_valid_diff_lines, deduplicate, nearest_valid_line, reflect_and_review};
 
 /// Orchestrates a complete code-review cycle.
 ///
@@ -150,7 +151,7 @@ impl ReviewEngine {
         // 6. Optional: Reflect & Review second pass
         if self.config.reflect && !comments.is_empty() {
             info!("Running Reflect & Review second pass...");
-            comments = self.reflect_and_review(comments).await?;
+            comments = reflect_and_review(self.ai.as_ref(), comments).await?;
         }
 
         // 7. Deduplicate, sort, cap
@@ -164,6 +165,29 @@ impl ReviewEngine {
             );
             comments.truncate(self.config.max_comments);
         }
+
+        // 8. Clamp line numbers to valid diff positions before batching to avoid
+        //    GitHub API 422 errors when the AI references lines outside the hunk.
+        let valid_lines = build_valid_diff_lines(&file_diffs);
+        let comments: Vec<ReviewComment> = comments
+            .into_iter()
+            .filter_map(|c| {
+                match nearest_valid_line(c.line, &c.file, &valid_lines) {
+                    Some(valid_line) => {
+                        let mut c = c;
+                        c.line = valid_line;
+                        Some(c)
+                    }
+                    None => {
+                        warn!(
+                            "Skipping inline comment on {} line {} — not in diff",
+                            c.file, c.line
+                        );
+                        None
+                    }
+                }
+            })
+            .collect();
 
         // 8+9. Submit all comments and summary as a single batched review
         let summary = build_summary(&comments, Some(&complexity));
@@ -197,60 +221,13 @@ impl ReviewEngine {
         let mut comments = self.run_ai_reviews(contexts).await?;
 
         if self.config.reflect && !comments.is_empty() {
-            comments = self.reflect_and_review(comments).await?;
+            comments = reflect_and_review(self.ai.as_ref(), comments).await?;
         }
 
         let mut comments = deduplicate(comments);
         comments.sort_by(|a, b| a.severity.cmp(&b.severity));
         comments.truncate(self.config.max_comments);
         Ok(comments)
-    }
-
-    /// Second AI pass: send first-pass comments back to AI for critique and filtering.
-    ///
-    /// The AI is asked to remove false positives, merge duplicates, and confirm severity.
-    async fn reflect_and_review(&self, comments: Vec<ReviewComment>) -> Result<Vec<ReviewComment>> {
-        let comments_json =
-            serde_json::to_string_pretty(&comments).unwrap_or_else(|_| "[]".to_string());
-
-        let system = "You are a senior code reviewer performing a quality check on a set of \
-                      AI-generated code review comments. Your job is to:\n\
-                      1. Remove false positives and nitpicks that aren't actionable\n\
-                      2. Merge duplicate or overlapping comments into one\n\
-                      3. Correct severity levels that seem too high or too low\n\
-                      4. Ensure each comment has a clear, concise body\n\n\
-                      Respond ONLY with the filtered/improved JSON array of review comments \
-                      (same schema as input). Preserve all valid comments. \
-                      Return [] only if all comments are false positives.";
-
-        let user = format!(
-            "Please review and refine these {} code review comment(s):\n\n{}",
-            comments.len(),
-            comments_json
-        );
-
-        let raw = self.ai.generate(system, &user).await?;
-        let cleaned = raw
-            .trim()
-            .trim_start_matches("```json")
-            .trim_start_matches("```")
-            .trim_end_matches("```")
-            .trim();
-
-        match serde_json::from_str::<Vec<ReviewComment>>(cleaned) {
-            Ok(refined) => {
-                info!(
-                    "Reflect & Review: {} → {} comments after refinement",
-                    comments.len(),
-                    refined.len()
-                );
-                Ok(refined)
-            }
-            Err(e) => {
-                warn!("Reflect & Review parse failed ({e}), using original comments");
-                Ok(comments)
-            }
-        }
     }
 
     /// Split file diffs into chunks of at most `chunk_lines` lines.
@@ -335,17 +312,6 @@ fn determine_review_action(comments: &[ReviewComment]) -> ReviewAction {
     }
 }
 
-/// Remove duplicate comments (same file + line + title).
-fn deduplicate(comments: Vec<ReviewComment>) -> Vec<ReviewComment> {
-    let mut seen: HashSet<String> = HashSet::new();
-    comments
-        .into_iter()
-        .filter(|c| {
-            let key = format!("{}:{}:{}", c.file, c.line, c.title);
-            seen.insert(key)
-        })
-        .collect()
-}
 
 /// Build a plain Markdown summary without complexity metadata.
 ///
@@ -417,6 +383,7 @@ fn count_severity(comments: &[ReviewComment], sev: &Severity) -> usize {
 mod tests {
     use super::*;
     use crate::ai::{Category, Severity};
+    use super::super::filter::{build_valid_diff_lines, deduplicate, nearest_valid_line};
 
     fn make_comment(file: &str, line: u32, sev: Severity) -> ReviewComment {
         ReviewComment {
@@ -480,5 +447,17 @@ mod tests {
         let diff = include_str!("../../tests/fixtures/large.diff");
         // Basic sanity: parse doesn't panic on larger diffs
         let _ = parse_diff(diff);
+    }
+
+    #[test]
+    fn test_nearest_valid_line_no_file() {
+        let map = std::collections::HashMap::new();
+        assert_eq!(nearest_valid_line(10, "missing.rs", &map), None);
+    }
+
+    #[test]
+    fn test_build_valid_diff_lines_empty() {
+        let map = build_valid_diff_lines(&[]);
+        assert!(map.is_empty());
     }
 }

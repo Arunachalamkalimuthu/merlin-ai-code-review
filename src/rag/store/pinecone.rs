@@ -22,6 +22,7 @@ use tracing::{info, warn};
 use crate::error::{MerlinError, Result};
 use crate::rag::{Document, Embedding, RetrievedDoc, VectorStore};
 
+/// Vector store backed by the Pinecone cloud vector database.
 pub struct PineconeStore {
     api_key: Option<String>,
     host: Option<String>,
@@ -29,6 +30,7 @@ pub struct PineconeStore {
 }
 
 impl PineconeStore {
+    /// Create a new Pinecone store with the given API key and index host.
     pub fn new(api_key: Option<String>, host: Option<String>) -> Self {
         Self {
             api_key,

@@ -7,6 +7,7 @@ use super::{MerlinTool, ToolContext};
 use crate::diff::parse_diff;
 use crate::error::Result;
 
+/// Tool for the `/commit-message` slash command — suggests a conventional commit message.
 pub struct CommitMessageTool;
 
 #[async_trait]

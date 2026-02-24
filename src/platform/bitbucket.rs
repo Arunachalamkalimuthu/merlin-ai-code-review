@@ -17,6 +17,7 @@ use crate::error::{MerlinError, Result};
 
 const BB_API: &str = "https://api.bitbucket.org/2.0";
 
+/// VCS platform client for Atlassian Bitbucket Cloud.
 pub struct BitbucketClient {
     auth: BitbucketAuth,
     workspace: String,
@@ -32,6 +33,7 @@ pub(crate) enum BitbucketAuth {
 }
 
 impl BitbucketClient {
+    /// Create a new Bitbucket client.
     pub(crate) fn new(
         auth: BitbucketAuth,
         workspace: String,
@@ -438,7 +440,10 @@ fn format_comment(emoji: &str, c: &ReviewComment) -> String {
         suggestion = c
             .suggestion
             .as_deref()
-            .map(|s| format!("\n\n**Suggestion:**\n```\n{s}\n```"))
+            .map(|s| {
+                let s = crate::platform::strip_suggestion_fences(s);
+                format!("\n\n**Suggestion:**\n```\n{s}\n```")
+            })
             .unwrap_or_default(),
     )
 }

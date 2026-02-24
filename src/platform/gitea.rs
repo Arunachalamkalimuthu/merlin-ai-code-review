@@ -16,6 +16,7 @@ use super::{InlineCodeSuggestion, Issue, PlatformClient, PrInfo};
 use crate::ai::ReviewComment;
 use crate::error::{MerlinError, Result};
 
+/// VCS platform client for self-hosted Gitea instances.
 pub struct GiteaClient {
     token: String,
     /// e.g. `https://gitea.example.com/api/v1`
@@ -28,6 +29,7 @@ pub struct GiteaClient {
 }
 
 impl GiteaClient {
+    /// Create a new Gitea client from the given parameters.
     pub fn new(
         token: String,
         server_url: String,
@@ -503,7 +505,10 @@ fn format_comment(emoji: &str, c: &ReviewComment) -> String {
         suggestion = c
             .suggestion
             .as_deref()
-            .map(|s| format!("\n\n**Suggestion:**\n```\n{s}\n```"))
+            .map(|s| {
+                let s = crate::platform::strip_suggestion_fences(s);
+                format!("\n\n**Suggestion:**\n```\n{s}\n```")
+            })
             .unwrap_or_default(),
     )
 }

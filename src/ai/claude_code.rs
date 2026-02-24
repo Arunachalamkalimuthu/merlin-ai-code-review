@@ -24,11 +24,13 @@ use super::{system_prompt, AiProvider, ReviewComment, ReviewContext};
 use crate::config::AiConfig;
 use crate::error::{MerlinError, Result};
 
+/// AI provider that delegates to the `claude` CLI (Claude Code).
 pub struct ClaudeCodeProvider {
     config: AiConfig,
 }
 
 impl ClaudeCodeProvider {
+    /// Create a new Claude Code provider from the given AI config.
     pub fn new(config: AiConfig) -> Self {
         Self { config }
     }

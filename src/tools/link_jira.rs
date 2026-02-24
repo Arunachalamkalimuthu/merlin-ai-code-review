@@ -12,6 +12,7 @@ use crate::config::Config;
 use crate::error::Result;
 use crate::integrations::jira::JiraClient;
 
+/// Tool for the `/link-jira` slash command — links the PR to matching Jira issues.
 pub struct LinkJiraTool;
 
 #[async_trait]

@@ -8,6 +8,7 @@ use crate::error::{MerlinError, Result};
 
 const GITHUB_API: &str = "https://api.github.com";
 
+/// VCS platform client for GitHub (github.com and GitHub Enterprise).
 pub struct GitHubClient {
     token: String,
     repo: String, // "owner/repo"
@@ -18,6 +19,7 @@ pub struct GitHubClient {
 }
 
 impl GitHubClient {
+    /// Create a new GitHub client for the specified repo and PR.
     pub fn new(token: String, repo: String, pr_number: u64, head_sha: String) -> Self {
         Self {
             token,
@@ -54,6 +56,32 @@ impl GitHubClient {
     fn api(&self, path: &str) -> String {
         format!("{GITHUB_API}/{path}")
     }
+}
+
+/// Fetch the head commit SHA of a pull request.
+///
+/// Used by the webhook handler, which has no access to the `GITHUB_SHA`
+/// environment variable that GitHub Actions injects automatically.
+pub async fn fetch_pr_head_sha(token: &str, repo: &str, pr_number: u64) -> crate::error::Result<String> {
+    #[derive(Deserialize)]
+    struct Ref { sha: String }
+    #[derive(Deserialize)]
+    struct PrHead { head: Ref }
+
+    let url = format!("{GITHUB_API}/repos/{repo}/pulls/{pr_number}");
+    let pr: PrHead = reqwest::Client::new()
+        .get(&url)
+        .header("Authorization", format!("Bearer {token}"))
+        .header("Accept", "application/vnd.github.v3+json")
+        .header("User-Agent", "merlin-review/0.1")
+        .send()
+        .await?
+        .error_for_status()
+        .map_err(|e| crate::error::MerlinError::Platform(format!("Failed to fetch PR head SHA: {e}")))?
+        .json()
+        .await?;
+
+    Ok(pr.head.sha)
 }
 
 // ── GitHub API response types ─────────────────────────────────────────────────
@@ -526,7 +554,10 @@ fn format_comment(emoji: &str, c: &ReviewComment) -> String {
         suggestion = c
             .suggestion
             .as_deref()
-            .map(|s| format!("\n\n**Suggestion:**\n```\n{s}\n```"))
+            .map(|s| {
+                let s = crate::platform::strip_suggestion_fences(s);
+                format!("\n\n**Suggestion:**\n```\n{s}\n```")
+            })
             .unwrap_or_default(),
     )
 }

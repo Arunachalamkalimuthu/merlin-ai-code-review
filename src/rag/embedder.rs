@@ -27,6 +27,7 @@ pub struct OllamaEmbedder {
 }
 
 impl OllamaEmbedder {
+    /// Create a new Ollama embedder connecting to `base_url` and using `model`.
     pub fn new(base_url: String, model: String) -> Self {
         Self {
             base_url,
@@ -98,6 +99,7 @@ pub struct OpenAiEmbedder {
 }
 
 impl OpenAiEmbedder {
+    /// Create a new OpenAI embedder with the given API key and model name.
     pub fn new(api_key: String, model: String) -> Self {
         Self {
             api_key,

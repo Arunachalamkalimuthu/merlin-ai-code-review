@@ -41,8 +41,11 @@ pub enum FilePriority {
 /// Produced by [`prioritize_diffs`].
 #[derive(Debug, Clone)]
 pub struct PrioritizedDiff {
+    /// The parsed file diff.
     pub file: FileDiff,
+    /// Computed priority rank.
     pub priority: FilePriority,
+    /// Approximate token cost for this diff.
     pub estimated_tokens: usize,
 }
 
@@ -52,17 +55,29 @@ pub struct PrioritizedDiff {
 /// metadata without calling the platform API again.
 #[derive(Debug, Clone)]
 pub struct PrStatus {
+    /// PR/MR title.
     pub title: String,
+    /// GitHub/GitLab login of the PR author.
     pub author: String,
+    /// Whether the PR is in draft state.
     pub is_draft: bool,
+    /// Total number of files changed.
     pub files_changed: u32,
+    /// Total lines added.
     pub additions: u32,
+    /// Total lines removed.
     pub deletions: u32,
+    /// Labels currently applied to the PR.
     pub labels: Vec<String>,
+    /// T-shirt size label based on lines changed.
     pub size_label: SizeLabel,
+    /// Whether at least one test file was changed.
     pub has_tests: bool,
+    /// Whether a database migration file was changed.
     pub has_migration: bool,
+    /// Whether any security-sensitive file was changed.
     pub has_secrets_risk: bool,
+    /// Contributing guidelines fetched from the repo, if any.
     pub contributing_guidelines: Option<String>,
 }
 
@@ -85,6 +100,7 @@ pub enum SizeLabel {
 }
 
 impl SizeLabel {
+    /// Convert a total line-change count to a size label.
     pub fn from_lines(lines: u32) -> Self {
         match lines {
             0..=10 => SizeLabel::XSmall,
@@ -95,6 +111,7 @@ impl SizeLabel {
         }
     }
 
+    /// Return the GitHub label string for this size (e.g. `"size/M"`).
     pub fn as_str(&self) -> &'static str {
         match self {
             SizeLabel::XSmall => "size/XS",
@@ -236,13 +253,18 @@ pub fn build_pr_status(
 /// Risk level derived from complexity score.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum RiskLevel {
+    /// Score 0–24 — low complexity.
     Low,
+    /// Score 25–49 — moderate complexity.
     Medium,
+    /// Score 50–74 — high complexity.
     High,
+    /// Score 75–100 — critical complexity.
     Critical,
 }
 
 impl RiskLevel {
+    /// Return a coloured circle emoji representing this risk level.
     pub fn emoji(&self) -> &'static str {
         match self {
             RiskLevel::Low => "🟢",
@@ -251,6 +273,7 @@ impl RiskLevel {
             RiskLevel::Critical => "🔴",
         }
     }
+    /// Return the human-readable risk level name.
     pub fn as_str(&self) -> &'static str {
         match self {
             RiskLevel::Low => "Low",

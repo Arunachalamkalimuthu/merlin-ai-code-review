@@ -18,6 +18,7 @@ use super::doc_id_to_u64;
 use crate::error::{MerlinError, Result};
 use crate::rag::{Document, Embedding, RetrievedDoc, VectorStore};
 
+/// Vector store backed by a Qdrant REST API.
 pub struct QdrantStore {
     base_url: String,
     api_key: Option<String>,
@@ -25,6 +26,7 @@ pub struct QdrantStore {
 }
 
 impl QdrantStore {
+    /// Create a new Qdrant store connecting to `base_url` with optional API key.
     pub fn new(base_url: String, api_key: Option<String>) -> Self {
         Self {
             base_url,

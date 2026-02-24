@@ -8,6 +8,7 @@ use crate::config::Config;
 use crate::error::Result;
 use crate::integrations::linear::LinearClient;
 
+/// Tool for the `/link-linear` slash command — links the PR to matching Linear issues.
 pub struct LinkLinearTool;
 
 #[async_trait]

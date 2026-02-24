@@ -1,0 +1,123 @@
+name: Merlin Bot
+
+# Responds to PR comments containing @merlin slash commands.
+#
+# Trigger examples:
+#   @merlin /review
+#   @merlin /ask Is this function thread-safe?
+#   /describe
+#   /security
+#
+# Flow:
+#   1. Filter to PR comments that contain a slash command
+#   2. Fetch the PR head SHA and check out the PR source
+#   3. Build Merlin (binary is cached by Cargo.lock hash)
+#   4. Parse the command from the comment and dispatch via `merlin run`
+#
+# Required secrets:
+#   ANTHROPIC_API_KEY  — AI provider (or swap for another supported key)
+#
+# Optional secrets:
+#   OPENAI_API_KEY     — enables RAG context for more accurate reviews
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  respond:
+    name: Run command
+    runs-on: ubuntu-latest
+
+    # Only run on PR comments (not plain issue comments) that look like slash
+    # commands, and only when the AI key is available.
+    if: |
+      github.event.issue.pull_request != null &&
+      (
+        contains(github.event.comment.body, '/review')          ||
+        contains(github.event.comment.body, '/ask')             ||
+        contains(github.event.comment.body, '/describe')        ||
+        contains(github.event.comment.body, '/improve')         ||
+        contains(github.event.comment.body, '/security')        ||
+        contains(github.event.comment.body, '/spec')            ||
+        contains(github.event.comment.body, '/test')            ||
+        contains(github.event.comment.body, '/explain')         ||
+        contains(github.event.comment.body, '/coverage')        ||
+        contains(github.event.comment.body, '/approve')         ||
+        contains(github.event.comment.body, '/commit_message')  ||
+        contains(github.event.comment.body, '/generate_labels') ||
+        contains(github.event.comment.body, '/add_doc')         ||
+        contains(github.event.comment.body, '/docstring')       ||
+        contains(github.event.comment.body, '/update_changelog')
+      ) &&
+      secrets.ANTHROPIC_API_KEY != ''
+
+    steps:
+      # ── 1. Resolve PR head SHA ─────────────────────────────────────────────
+      # issue_comment events don't carry the PR head SHA — fetch it via gh CLI.
+      - name: Get PR head info
+        id: pr
+        run: |
+          sha=$(gh pr view "$PR_NUMBER" --json headRefOid -q '.headRefOid')
+          ref=$(gh pr view "$PR_NUMBER" --json headRefName -q '.headRefName')
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+
+      # ── 2. Check out the PR source ─────────────────────────────────────────
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.ref }}
+          fetch-depth: 0
+
+      # ── 3. Build Merlin (cached by Cargo.lock hash) ────────────────────────
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Merlin binary
+        id: cache-bin
+        uses: actions/cache@v4
+        with:
+          path: target/release/merlin
+          key: merlin-bin-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cargo dependency cache
+        if: steps.cache-bin.outputs.cache-hit != 'true'
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build Merlin
+        if: steps.cache-bin.outputs.cache-hit != 'true'
+        run: cargo build --release --locked
+
+      # ── 4. Parse comment and dispatch command ──────────────────────────────
+      # The comment body is passed via an env var (not inline) to prevent
+      # shell injection from untrusted comment text.
+      - name: Dispatch command
+        run: |
+          if [[ "$COMMENT" =~ (@merlin[[:space:]]+)?(/[a-zA-Z_]+)(.*) ]]; then
+            CMD="${BASH_REMATCH[2]}"
+            ARG="${BASH_REMATCH[3]# }"   # strip leading space
+            echo "Dispatching: merlin run $CMD${ARG:+ \"$ARG\"}"
+            if [[ -n "$ARG" ]]; then
+              ./target/release/merlin run "$CMD" "$ARG"
+            else
+              ./target/release/merlin run "$CMD"
+            fi
+          else
+            echo "No Merlin command found in comment — nothing to do."
+          fi
+        env:
+          COMMENT: ${{ github.event.comment.body }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ steps.pr.outputs.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PR_NUMBER: ${{ github.event.issue.number }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

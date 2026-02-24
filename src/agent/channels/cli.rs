@@ -15,6 +15,7 @@ pub struct CliChannel {
 }
 
 impl CliChannel {
+    /// Create a new CLI channel reading from stdin and writing to stdout.
     pub fn new() -> Self {
         Self {
             reader: BufReader::new(tokio::io::stdin()),
