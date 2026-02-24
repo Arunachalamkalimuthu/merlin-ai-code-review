@@ -591,6 +591,7 @@ impl PlatformClient for AzureDevOpsClient {
         content: &str,
         message: &str,
         _current_sha: Option<&str>,
+        _branch: Option<&str>,
     ) -> Result<()> {
         // Need to get the current branch SHA first
         let branch_url =

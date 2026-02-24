@@ -152,6 +152,9 @@ struct UpdateFileBody<'a> {
     content: String, // base64
     #[serde(skip_serializing_if = "Option::is_none")]
     sha: Option<&'a str>,
+    /// Target branch; omit to commit to the default branch.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    branch: Option<&'a str>,
 }
 
 /// A single inline comment included in a batch pull-request review.
@@ -211,6 +214,14 @@ struct CheckRunComplete {
 #[derive(Deserialize)]
 struct CheckRunCreated {
     id: u64,
+}
+
+/// Request body for `POST /repos/{repo}/git/refs` (create branch).
+#[derive(Serialize)]
+struct CreateRefBody {
+    #[serde(rename = "ref")]
+    git_ref: String,
+    sha: String,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -445,6 +456,7 @@ impl PlatformClient for GitHubClient {
         content: &str,
         message: &str,
         current_sha: Option<&str>,
+        branch: Option<&str>,
     ) -> Result<()> {
         use base64::{engine::general_purpose::STANDARD, Engine};
         let url = self.api(&format!("repos/{}/contents/{}", self.repo, path));
@@ -453,6 +465,7 @@ impl PlatformClient for GitHubClient {
             message,
             content: encoded,
             sha: current_sha,
+            branch,
         };
 
         self.client
@@ -465,6 +478,26 @@ impl PlatformClient for GitHubClient {
             .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("Failed to update file: {e}")))?;
+        Ok(())
+    }
+
+    #[instrument(skip(self))]
+    async fn create_branch(&self, name: &str, from_sha: &str) -> Result<()> {
+        let url = self.api(&format!("repos/{}/git/refs", self.repo));
+        let payload = CreateRefBody {
+            git_ref: format!("refs/heads/{name}"),
+            sha: from_sha.to_string(),
+        };
+        self.client
+            .post(&url)
+            .header("Authorization", self.auth_header())
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "merlin-review/0.1")
+            .json(&payload)
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| MerlinError::Platform(format!("Failed to create branch: {e}")))?;
         Ok(())
     }
 

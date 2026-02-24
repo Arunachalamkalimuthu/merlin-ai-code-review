@@ -320,6 +320,7 @@ impl PlatformClient for GitLabClient {
         content: &str,
         message: &str,
         _current_sha: Option<&str>,
+        _branch: Option<&str>,
     ) -> Result<()> {
         let encoded_path = path.replace('/', "%2F");
         let url = self.proj_url(&format!("repository/files/{}", encoded_path));

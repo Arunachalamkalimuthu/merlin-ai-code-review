@@ -140,6 +140,7 @@ impl PlatformClient for MockPlatform {
         content: &str,
         _message: &str,
         _current_sha: Option<&str>,
+        _branch: Option<&str>,
     ) -> Result<()> {
         *self.updated_file.lock().unwrap() = Some((path.to_string(), content.to_string()));
         Ok(())
