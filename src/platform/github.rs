@@ -152,6 +152,9 @@ struct UpdateFileBody<'a> {
     content: String, // base64
     #[serde(skip_serializing_if = "Option::is_none")]
     sha: Option<&'a str>,
+    /// Target branch; omit to commit to the default branch.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    branch: Option<&'a str>,
 }
 
 /// A single inline comment included in a batch pull-request review.
@@ -170,6 +173,55 @@ struct BatchReviewBody {
     body: String,
     event: String,
     comments: Vec<BatchReviewComment>,
+}
+
+/// Request body for `POST /repos/{repo}/check-runs` (create).
+#[derive(Serialize)]
+struct CheckRunCreate {
+    name: String,
+    head_sha: String,
+    status: String,
+}
+
+/// A single annotation in a GitHub Checks check-run output.
+#[derive(Serialize)]
+struct CheckAnnotation {
+    path: String,
+    start_line: u32,
+    end_line: u32,
+    annotation_level: String,
+    message: String,
+    title: String,
+}
+
+/// Output block for a GitHub Checks check-run.
+#[derive(Serialize)]
+struct CheckRunOutput {
+    title: String,
+    summary: String,
+    annotations: Vec<CheckAnnotation>,
+}
+
+/// Request body for `PATCH /repos/{repo}/check-runs/{id}` (complete).
+#[derive(Serialize)]
+struct CheckRunComplete {
+    status: String,
+    conclusion: String,
+    output: CheckRunOutput,
+}
+
+/// Response from `POST /repos/{repo}/check-runs`.
+#[derive(Deserialize)]
+struct CheckRunCreated {
+    id: u64,
+}
+
+/// Request body for `POST /repos/{repo}/git/refs` (create branch).
+#[derive(Serialize)]
+struct CreateRefBody {
+    #[serde(rename = "ref")]
+    git_ref: String,
+    sha: String,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -404,6 +456,7 @@ impl PlatformClient for GitHubClient {
         content: &str,
         message: &str,
         current_sha: Option<&str>,
+        branch: Option<&str>,
     ) -> Result<()> {
         use base64::{engine::general_purpose::STANDARD, Engine};
         let url = self.api(&format!("repos/{}/contents/{}", self.repo, path));
@@ -412,6 +465,7 @@ impl PlatformClient for GitHubClient {
             message,
             content: encoded,
             sha: current_sha,
+            branch,
         };
 
         self.client
@@ -424,6 +478,26 @@ impl PlatformClient for GitHubClient {
             .await?
             .error_for_status()
             .map_err(|e| MerlinError::Platform(format!("Failed to update file: {e}")))?;
+        Ok(())
+    }
+
+    #[instrument(skip(self))]
+    async fn create_branch(&self, name: &str, from_sha: &str) -> Result<()> {
+        let url = self.api(&format!("repos/{}/git/refs", self.repo));
+        let payload = CreateRefBody {
+            git_ref: format!("refs/heads/{name}"),
+            sha: from_sha.to_string(),
+        };
+        self.client
+            .post(&url)
+            .header("Authorization", self.auth_header())
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "merlin-review/0.1")
+            .json(&payload)
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| MerlinError::Platform(format!("Failed to create branch: {e}")))?;
         Ok(())
     }
 
@@ -488,6 +562,92 @@ impl PlatformClient for GitHubClient {
                 })
             })
             .collect())
+    }
+
+    #[instrument(skip(self, comments, summary))]
+    async fn post_check_run(
+        &self,
+        comments: &[ReviewComment],
+        summary: &str,
+    ) -> Result<()> {
+        use crate::ai::Severity;
+
+        // 1. Create the check-run in "in_progress" state
+        let create_url = self.api(&format!("repos/{}/check-runs", self.repo));
+        let create_payload = CheckRunCreate {
+            name: "Merlin Code Review".to_string(),
+            head_sha: self.head_sha.clone(),
+            status: "in_progress".to_string(),
+        };
+        let created: CheckRunCreated = self
+            .client
+            .post(&create_url)
+            .header("Authorization", self.auth_header())
+            .header("Accept", "application/vnd.github+json")
+            .header("User-Agent", "merlin-review/0.1")
+            .json(&create_payload)
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| MerlinError::Platform(format!("Failed to create check run: {e}")))?
+            .json()
+            .await?;
+
+        // 2. Map comments → annotations (cap at 50 — GitHub limit per request)
+        let annotations: Vec<CheckAnnotation> = comments
+            .iter()
+            .filter(|c| c.line > 0)
+            .take(50)
+            .map(|c| {
+                let level = match c.severity {
+                    Severity::Critical | Severity::High => "failure",
+                    Severity::Medium => "warning",
+                    Severity::Low | Severity::Info => "notice",
+                };
+                CheckAnnotation {
+                    path: c.file.clone(),
+                    start_line: c.line,
+                    end_line: c.line,
+                    annotation_level: level.to_string(),
+                    message: c.body.clone(),
+                    title: c.title.clone(),
+                }
+            })
+            .collect();
+
+        // 3. Determine overall conclusion
+        let conclusion = if comments
+            .iter()
+            .any(|c| matches!(c.severity, Severity::Critical | Severity::High))
+        {
+            "failure"
+        } else {
+            "success"
+        };
+
+        // 4. Complete the check-run with annotations
+        let patch_url = self.api(&format!("repos/{}/check-runs/{}", self.repo, created.id));
+        let complete_payload = CheckRunComplete {
+            status: "completed".to_string(),
+            conclusion: conclusion.to_string(),
+            output: CheckRunOutput {
+                title: "Merlin Code Review".to_string(),
+                summary: summary.to_string(),
+                annotations,
+            },
+        };
+        self.client
+            .patch(&patch_url)
+            .header("Authorization", self.auth_header())
+            .header("Accept", "application/vnd.github+json")
+            .header("User-Agent", "merlin-review/0.1")
+            .json(&complete_payload)
+            .send()
+            .await?
+            .error_for_status()
+            .map_err(|e| MerlinError::Platform(format!("Failed to complete check run: {e}")))?;
+
+        Ok(())
     }
 
     #[instrument(skip(self, comments, summary))]
