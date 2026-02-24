@@ -505,7 +505,10 @@ fn format_comment(emoji: &str, c: &ReviewComment) -> String {
         suggestion = c
             .suggestion
             .as_deref()
-            .map(|s| format!("\n\n**Suggestion:**\n```\n{s}\n```"))
+            .map(|s| {
+                let s = crate::platform::strip_suggestion_fences(s);
+                format!("\n\n**Suggestion:**\n```\n{s}\n```")
+            })
             .unwrap_or_default(),
     )
 }

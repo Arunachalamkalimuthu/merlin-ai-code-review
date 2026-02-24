@@ -235,6 +235,32 @@ impl PlatformClient for NoOpPlatform {
     }
 }
 
+/// Strip any markdown code fences that the AI may have already added to a
+/// suggestion string.  Models sometimes return suggestions wrapped in
+/// ` ```lang … ``` ` blocks; if we naively re-wrap those in another fence
+/// the rendered comment breaks (double fence / orphan empty block).
+///
+/// Rules applied in order:
+/// 1. Trim surrounding whitespace.
+/// 2. If the first line is a fence opener (` ``` ` or ` ```lang `), drop it.
+/// 3. If the last non-empty line is a fence closer (` ``` `), drop it.
+pub(crate) fn strip_suggestion_fences(s: &str) -> &str {
+    let s = s.trim();
+    // Strip leading fence line (``` or ```lang)
+    let s = if s.starts_with("```") {
+        s.split_once('\n').map(|x| x.1).unwrap_or(s).trim_start()
+    } else {
+        s
+    };
+    // Strip trailing fence
+    let s = s.trim_end();
+    if let Some(stripped) = s.strip_suffix("```") {
+        stripped.trim_end()
+    } else {
+        s
+    }
+}
+
 fn detect_platform() -> Result<PlatformType> {
     // GitHub Actions
     if std::env::var("GITHUB_ACTIONS").is_ok() {
