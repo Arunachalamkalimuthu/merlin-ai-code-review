@@ -31,6 +31,7 @@ use crate::digest::complexity_score;
 use crate::error::Result;
 use crate::platform::{PlatformClient, ReviewAction};
 use crate::rag::RagPipeline;
+use crate::review::cache::{diff_hash, ReviewCache};
 
 /// Orchestrates a complete code-review cycle.
 ///
@@ -96,6 +97,41 @@ impl ReviewEngine {
             return Ok(vec![]);
         }
 
+        // 2.5 Incremental cache: skip files whose diff hash is unchanged
+        let mut incremental_cache: Option<ReviewCache> = None;
+        let file_diffs = if self.config.incremental {
+            let mut cache = ReviewCache::load(&self.config.cache_path);
+            let mut skipped = 0usize;
+            let filtered: Vec<FileDiff> = file_diffs
+                .into_iter()
+                .filter(|f| {
+                    let hash = diff_hash(&f.hunks);
+                    if cache.is_fresh(f.path(), &hash) {
+                        skipped += 1;
+                        false
+                    } else {
+                        cache.update(f.path(), hash);
+                        true
+                    }
+                })
+                .collect();
+            if skipped > 0 {
+                info!("{} file(s) skipped — diff unchanged (incremental mode)", skipped);
+            }
+            incremental_cache = Some(cache);
+            filtered
+        } else {
+            file_diffs
+        };
+
+        if file_diffs.is_empty() {
+            info!("All files cached — nothing new to review.");
+            if let Some(c) = incremental_cache {
+                c.save();
+            }
+            return Ok(vec![]);
+        }
+
         // 3. Compute PR complexity
         let complexity = complexity_score(&file_diffs);
         info!(
@@ -137,6 +173,12 @@ impl ReviewEngine {
             .await?;
 
         info!("Review complete — {} comments posted", comments.len());
+
+        // Persist incremental cache so next run can skip unchanged files
+        if let Some(c) = incremental_cache {
+            c.save();
+        }
+
         Ok(comments)
     }
 
