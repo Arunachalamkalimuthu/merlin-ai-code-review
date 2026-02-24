@@ -28,8 +28,9 @@ use crate::config::ReviewConfig;
 use crate::diff::{parse_diff, FileDiff};
 use crate::digest::complexity_score;
 use crate::error::Result;
-use crate::platform::PlatformClient;
+use crate::platform::{PlatformClient, ReviewAction};
 use crate::rag::RagPipeline;
+use crate::review::cache::{diff_hash, ReviewCache};
 
 use super::filter::{build_valid_diff_lines, deduplicate, nearest_valid_line, reflect_and_review};
 
@@ -97,6 +98,41 @@ impl ReviewEngine {
             return Ok(vec![]);
         }
 
+        // 2.5 Incremental cache: skip files whose diff hash is unchanged
+        let mut incremental_cache: Option<ReviewCache> = None;
+        let file_diffs = if self.config.incremental {
+            let mut cache = ReviewCache::load(&self.config.cache_path);
+            let mut skipped = 0usize;
+            let filtered: Vec<FileDiff> = file_diffs
+                .into_iter()
+                .filter(|f| {
+                    let hash = diff_hash(&f.hunks);
+                    if cache.is_fresh(f.path(), &hash) {
+                        skipped += 1;
+                        false
+                    } else {
+                        cache.update(f.path(), hash);
+                        true
+                    }
+                })
+                .collect();
+            if skipped > 0 {
+                info!("{} file(s) skipped — diff unchanged (incremental mode)", skipped);
+            }
+            incremental_cache = Some(cache);
+            filtered
+        } else {
+            file_diffs
+        };
+
+        if file_diffs.is_empty() {
+            info!("All files cached — nothing new to review.");
+            if let Some(c) = incremental_cache {
+                c.save();
+            }
+            return Ok(vec![]);
+        }
+
         // 3. Compute PR complexity
         let complexity = complexity_score(&file_diffs);
         info!(
@@ -130,32 +166,43 @@ impl ReviewEngine {
             comments.truncate(self.config.max_comments);
         }
 
-        // 8. Post inline comments — clamp line numbers to valid diff positions to
-        //    avoid GitHub API 422 errors when the AI references lines outside the hunk.
+        // 8. Clamp line numbers to valid diff positions before batching to avoid
+        //    GitHub API 422 errors when the AI references lines outside the hunk.
         let valid_lines = build_valid_diff_lines(&file_diffs);
-        for comment in &comments {
-            match nearest_valid_line(comment.line, &comment.file, &valid_lines) {
-                Some(valid_line) => {
-                    let mut c = comment.clone();
-                    c.line = valid_line;
-                    if let Err(e) = self.platform.post_inline_comment(&c).await {
-                        warn!("Failed to post inline comment on {}: {e}", c.file);
+        let comments: Vec<ReviewComment> = comments
+            .into_iter()
+            .filter_map(|c| {
+                match nearest_valid_line(c.line, &c.file, &valid_lines) {
+                    Some(valid_line) => {
+                        let mut c = c;
+                        c.line = valid_line;
+                        Some(c)
+                    }
+                    None => {
+                        warn!(
+                            "Skipping inline comment on {} line {} — not in diff",
+                            c.file, c.line
+                        );
+                        None
                     }
                 }
-                None => {
-                    warn!(
-                        "Skipping inline comment on {} line {} — not in diff",
-                        comment.file, comment.line
-                    );
-                }
-            }
-        }
+            })
+            .collect();
 
-        // 9. Post summary (including complexity)
+        // 8+9. Submit all comments and summary as a single batched review
         let summary = build_summary(&comments, Some(&complexity));
-        self.platform.post_summary(&summary).await?;
+        let action = determine_review_action(&comments);
+        self.platform
+            .submit_review(&comments, &summary, action)
+            .await?;
 
         info!("Review complete — {} comments posted", comments.len());
+
+        // Persist incremental cache so next run can skip unchanged files
+        if let Some(c) = incremental_cache {
+            c.save();
+        }
+
         Ok(comments)
     }
 
@@ -246,6 +293,25 @@ impl ReviewEngine {
         Ok(all_comments)
     }
 }
+
+/// Choose the appropriate [`ReviewAction`] from the comment list.
+///
+/// - Zero issues → [`ReviewAction::Approve`]
+/// - Any Critical or High issue → [`ReviewAction::RequestChanges`]
+/// - Otherwise → [`ReviewAction::Comment`]
+fn determine_review_action(comments: &[ReviewComment]) -> ReviewAction {
+    if comments.is_empty() {
+        ReviewAction::Approve
+    } else if comments
+        .iter()
+        .any(|c| matches!(c.severity, Severity::Critical | Severity::High))
+    {
+        ReviewAction::RequestChanges
+    } else {
+        ReviewAction::Comment
+    }
+}
+
 
 /// Build a plain Markdown summary without complexity metadata.
 ///

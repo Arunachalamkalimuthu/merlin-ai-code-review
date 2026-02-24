@@ -23,6 +23,12 @@ pub struct ReviewConfig {
     /// Custom review persona (overrides system prompt behaviour).
     #[serde(default)]
     pub persona: PersonaConfig,
+    /// Only re-review files whose diff has changed since the last run.
+    #[serde(default)]
+    pub incremental: bool,
+    /// Path to the incremental review cache file (default: `.merlin-cache.json`).
+    #[serde(default = "default_cache_path")]
+    pub cache_path: String,
 }
 
 fn default_focus() -> Vec<String> {
@@ -42,6 +48,10 @@ fn default_chunk_lines() -> usize {
     200
 }
 
+fn default_cache_path() -> String {
+    ".merlin-cache.json".to_string()
+}
+
 impl Default for ReviewConfig {
     fn default() -> Self {
         ReviewConfig {
@@ -50,6 +60,8 @@ impl Default for ReviewConfig {
             chunk_lines: default_chunk_lines(),
             reflect: false,
             persona: PersonaConfig::default(),
+            incremental: false,
+            cache_path: default_cache_path(),
         }
     }
 }

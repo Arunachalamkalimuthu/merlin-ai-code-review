@@ -37,6 +37,20 @@ use crate::error::{MerlinError, Result};
 
 // ── Shared data types ─────────────────────────────────────────────────────────
 
+/// Indicates the outcome of a batch review submission.
+///
+/// Used by [`PlatformClient::submit_review`] to drive the platform's native
+/// review-state API (e.g. GitHub's `APPROVE` / `REQUEST_CHANGES` / `COMMENT`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReviewAction {
+    /// Post comments without changing the PR approval state.
+    Comment,
+    /// Approve the PR — emitted when the AI finds zero issues.
+    Approve,
+    /// Request changes — emitted when Critical or High severity issues are found.
+    RequestChanges,
+}
+
 /// Metadata for a pull request or merge request.
 ///
 /// Returned by [`PlatformClient::get_pr_info`].  Fields that are unavailable
@@ -115,6 +129,31 @@ pub trait PlatformClient: Send + Sync {
 
     /// Post the overall review summary as a PR/MR comment.
     async fn post_summary(&self, summary: &str) -> Result<()>;
+
+    /// Submit all review comments and a summary in a single batched operation.
+    ///
+    /// The default implementation calls [`post_inline_comment`] for each
+    /// comment and then [`post_summary`].  Platforms that support a native
+    /// batch review API (e.g. GitHub Pull Request Reviews) should override this
+    /// to collapse N notifications into one.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::error::MerlinError::Platform`] if any post fails.
+    async fn submit_review(
+        &self,
+        comments: &[ReviewComment],
+        summary: &str,
+        action: ReviewAction,
+    ) -> Result<()> {
+        let _ = action; // ignored by default impl
+        for c in comments {
+            if let Err(e) = self.post_inline_comment(c).await {
+                tracing::warn!("Failed to post inline comment on {}: {e}", c.file);
+            }
+        }
+        self.post_summary(summary).await
+    }
 
     // ── PR metadata ops ───────────────────────────────────────────────────
     /// Get PR/MR metadata (title, body, labels, stats).
@@ -208,6 +247,14 @@ impl PlatformClient for NoOpPlatform {
         Ok(())
     }
     async fn post_summary(&self, _summary: &str) -> Result<()> {
+        Ok(())
+    }
+    async fn submit_review(
+        &self,
+        _comments: &[ReviewComment],
+        _summary: &str,
+        _action: ReviewAction,
+    ) -> Result<()> {
         Ok(())
     }
     async fn get_pr_info(&self) -> Result<PrInfo> {

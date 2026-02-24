@@ -5,6 +5,8 @@
 //! full eight-step review cycle, and [`filter`] for deduplication and the
 //! Reflect & Review second pass.
 
+pub mod cache;
+
 pub mod engine;
 pub mod filter;
 
