@@ -8,8 +8,8 @@
 //! # Storage format
 //!
 //! A flat JSON object `{ "path/to/file.rs": "<sha256-hex>", … }` written to
-//! [`ReviewCache::path`].  The file is created on first save and silently
-//! ignored when missing.
+//! the configured cache file path.  The file is created on first save and
+//! silently ignored when missing.
 use std::collections::HashMap;
 
 use hex;
@@ -22,9 +22,9 @@ use crate::diff::Hunk;
 /// Load with [`ReviewCache::load`] at the start of the review cycle and save
 /// with [`ReviewCache::save`] after posting comments.
 pub struct ReviewCache {
-    /// Path to the on-disk JSON cache file.
+    // Path to the on-disk JSON cache file.
     path: String,
-    /// In-memory entries: file path → SHA-256 hex of its diff hunks.
+    // In-memory entries: file path → SHA-256 hex of its diff hunks.
     entries: HashMap<String, String>,
 }
 

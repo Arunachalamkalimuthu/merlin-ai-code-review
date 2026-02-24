@@ -412,6 +412,7 @@ impl PlatformClient for GiteaClient {
         content: &str,
         message: &str,
         current_sha: Option<&str>,
+        _branch: Option<&str>,
     ) -> Result<()> {
         use base64::{engine::general_purpose::STANDARD, Engine};
         let url = self.repo_url(&format!("contents/{}", path.trim_start_matches('/')));

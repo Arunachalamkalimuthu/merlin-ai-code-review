@@ -136,8 +136,8 @@ pub trait PlatformClient: Send + Sync {
 
     /// Submit all review comments and a summary in a single batched operation.
     ///
-    /// The default implementation calls [`post_inline_comment`] for each
-    /// comment and then [`post_summary`].  Platforms that support a native
+    /// The default implementation calls [`Self::post_inline_comment`] for each
+    /// comment and then [`Self::post_summary`].  Platforms that support a native
     /// batch review API (e.g. GitHub Pull Request Reviews) should override this
     /// to collapse N notifications into one.
     ///
@@ -194,16 +194,35 @@ pub trait PlatformClient: Send + Sync {
     async fn post_code_suggestions(&self, suggestions: &[InlineCodeSuggestion]) -> Result<()>;
 
     /// Update a file in the repository (for changelog etc.).
+    ///
+    /// When `branch` is `Some`, the update is committed to that branch.
+    /// Passing `None` commits to the repository's default branch.
     async fn update_file(
         &self,
         path: &str,
         content: &str,
         message: &str,
         current_sha: Option<&str>,
+        branch: Option<&str>,
     ) -> Result<()>;
 
     /// Get a file's content and SHA from the repo.
     async fn get_file(&self, path: &str) -> Result<Option<(String, String)>>;
+
+    /// Create a new branch from `from_sha`.
+    ///
+    /// The default returns an error so callers know the platform does not
+    /// support programmatic branch creation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::error::MerlinError::Platform`] if unsupported or
+    /// if the API call fails.
+    async fn create_branch(&self, _name: &str, _from_sha: &str) -> Result<()> {
+        Err(MerlinError::Platform(
+            "create_branch is not supported on this platform".to_string(),
+        ))
+    }
 }
 
 // ── Factory ───────────────────────────────────────────────────────────────────
@@ -294,7 +313,14 @@ impl PlatformClient for NoOpPlatform {
     async fn post_code_suggestions(&self, _s: &[InlineCodeSuggestion]) -> Result<()> {
         Ok(())
     }
-    async fn update_file(&self, _p: &str, _c: &str, _m: &str, _sha: Option<&str>) -> Result<()> {
+    async fn update_file(
+        &self,
+        _p: &str,
+        _c: &str,
+        _m: &str,
+        _sha: Option<&str>,
+        _branch: Option<&str>,
+    ) -> Result<()> {
         Ok(())
     }
     async fn get_file(&self, _path: &str) -> Result<Option<(String, String)>> {
