@@ -1,0 +1,133 @@
+//! /diagram — Auto-generate a PR architecture diagram in Mermaid syntax.
+//!
+//! Parses the PR diff to identify changed files, groups them by module/directory,
+//! and uses the AI to generate a Mermaid diagram showing relationships and data flow.
+
+use async_trait::async_trait;
+use tracing::info;
+
+use super::{MerlinTool, ToolContext};
+use crate::diff::parse_diff;
+use crate::error::Result;
+
+/// Tool for the `/diagram` slash command — generates a Mermaid architecture diagram.
+pub struct DiagramTool;
+
+#[async_trait]
+impl MerlinTool for DiagramTool {
+    fn name(&self) -> &'static str {
+        "diagram"
+    }
+
+    async fn run(&self, ctx: &ToolContext) -> Result<String> {
+        info!("Running /diagram");
+
+        let raw_diff = ctx.platform.get_diff().await?;
+        let pr_info = ctx.platform.get_pr_info().await?;
+        let files = parse_diff(&raw_diff)?;
+
+        if files.is_empty() {
+            return Ok("## Merlin: PR Diagram\n\nNo changed files to diagram.".to_string());
+        }
+
+        // Build file list with metadata
+        let file_entries: Vec<String> = files
+            .iter()
+            .map(|f| {
+                let additions = f
+                    .hunks
+                    .iter()
+                    .flat_map(|h| &h.lines)
+                    .filter(|l| l.new_line.is_some() && l.old_line.is_none())
+                    .count();
+                let deletions = f
+                    .hunks
+                    .iter()
+                    .flat_map(|h| &h.lines)
+                    .filter(|l| l.old_line.is_some() && l.new_line.is_none())
+                    .count();
+                format!("- `{}` (+{additions}, -{deletions})", f.path())
+            })
+            .collect();
+
+        // Group by top-level directory
+        let mut modules: std::collections::HashMap<String, Vec<String>> =
+            std::collections::HashMap::new();
+        for f in &files {
+            let path = f.path();
+            let module = path.split('/').next().unwrap_or("root").to_string();
+            modules.entry(module).or_default().push(path.to_string());
+        }
+
+        let module_summary: Vec<String> = modules
+            .iter()
+            .map(|(m, files)| format!("- `{m}/` — {} file(s): {}", files.len(), files.join(", ")))
+            .collect();
+
+        // Build the diff summary (compressed)
+        let diff_summary = files
+            .iter()
+            .map(|f| crate::digest::compress_diff(f, 20))
+            .collect::<Vec<_>>()
+            .join("\n\n");
+
+        let prompt = format!(
+            "You are a software architect. Analyze the following PR and generate a Mermaid diagram \
+             that shows the architecture of the changes.\n\n\
+             ## Instructions\n\n\
+             1. Create a Mermaid diagram (graph TD or flowchart TD) showing:\n\
+                - Which modules/directories are affected\n\
+                - How the changed files relate to each other\n\
+                - Data flow or call relationships between components\n\
+                - Mark changed files with a different style\n\
+             2. Keep the diagram clean and readable (max 15-20 nodes)\n\
+             3. Use subgraphs for modules/directories with multiple changed files\n\
+             4. Add brief edge labels showing relationships (calls, imports, returns)\n\n\
+             ## PR Info\n\n\
+             Title: {title}\n\
+             Author: {author}\n\
+             Branch: {head} → {base}\n\n\
+             ## Changed Files ({n})\n\n{file_list}\n\n\
+             ## Module Grouping\n\n{modules}\n\n\
+             ## Diff Content\n\n```diff\n{diff}\n```\n\n\
+             ## Response Format\n\n\
+             Respond with ONLY:\n\
+             1. A brief 1-2 sentence summary of what the PR changes architecturally\n\
+             2. The Mermaid diagram wrapped in ```mermaid fences\n\
+             3. A legend explaining the node styles (if you used different styles)\n\n\
+             Do NOT include any other text or explanation.",
+            title = pr_info.title,
+            author = pr_info.author,
+            head = pr_info.head_branch,
+            base = pr_info.base_branch,
+            n = files.len(),
+            file_list = file_entries.join("\n"),
+            modules = module_summary.join("\n"),
+            diff = diff_summary,
+        );
+
+        let response = ctx
+            .ai
+            .generate(
+                "You are a software architect who creates clear, informative Mermaid diagrams \
+             for pull request reviews. Your diagrams help reviewers understand the scope \
+             and impact of code changes at a glance.",
+                &prompt,
+            )
+            .await?;
+
+        let output = format!(
+            "## Merlin: PR Architecture Diagram\n\n\
+             **{title}** — {n} file(s) changed across {m} module(s)\n\n\
+             {response}\n\n\
+             ---\n*Generated by [Merlin](https://github.com/Arunachalamkalimuthu/merlin-ai-code-review) 🦡*\n",
+            title = pr_info.title,
+            n = files.len(),
+            m = modules.len(),
+        );
+
+        ctx.platform.post_summary(&output).await?;
+
+        Ok(output)
+    }
+}

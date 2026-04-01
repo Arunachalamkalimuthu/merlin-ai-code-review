@@ -9,7 +9,9 @@
 //!   AWS Bedrock, Azure OpenAI, Ollama, Claude Code CLI, Groq, Together AI,
 //!   DeepSeek, Mistral AI, OpenRouter (12 providers total)
 //! - **Multi-platform VCS** — GitHub, GitLab, Bitbucket, Azure DevOps, Gitea
-//! - **Slash commands** — `/review`, `/security`, `/spec`, `/describe`, `/ask`, and more
+//! - **Slash commands** — `/review`, `/security`, `/spec`, `/diagram`, `/feedback`, and more
+//! - **Custom rules engine** — `.merlin-rules.yaml` with regex patterns and directives
+//! - **Adaptive feedback** — learns from accept/reject signals to suppress noisy comments
 //! - **RAG context injection** — embed your codebase, retrieve similar code per diff chunk
 //! - **Reflect & Review** — optional second AI pass to filter false positives
 //! - **Autonomous agent** — ReAct-loop bot reachable via CLI, Slack, or Discord
@@ -81,8 +83,10 @@
 //! | [`diff`] | Unified diff parser producing [`diff::FileDiff`] structs |
 //! | [`digest`] | Token budgeting, file prioritisation, complexity scoring |
 //! | [`platform`] | VCS clients: GitHub, GitLab, Bitbucket, Azure DevOps, Gitea |
+//! | [`feedback`] | Adaptive feedback learning — suppresses noisy comment patterns |
+//! | [`rules`] | Custom review rules engine (`.merlin-rules.yaml`) |
 //! | [`review`] | [`review::ReviewEngine`] orchestration and summary generation |
-//! | [`tools`] | Slash-command implementations (`/describe`, `/spec`, `/security`, …) |
+//! | [`tools`] | Slash-command implementations (`/describe`, `/spec`, `/diagram`, …) |
 //! | [`agent`] | ReAct-loop autonomous agent runtime and memory |
 //! | [`rag`] | RAG pipeline: embedders, vector stores, indexer, retriever |
 //! | [`webhook`] | Axum-based webhook listener for bot/agent mode |
@@ -102,10 +106,12 @@ pub mod dashboard;
 pub mod diff;
 pub mod digest;
 pub mod error;
+pub mod feedback;
 pub mod integrations;
 pub mod platform;
 pub mod rag;
 pub mod review;
+pub mod rules;
 pub mod tools;
 pub mod update;
 pub mod webhook;

@@ -62,11 +62,19 @@ impl GitHubClient {
 ///
 /// Used by the webhook handler, which has no access to the `GITHUB_SHA`
 /// environment variable that GitHub Actions injects automatically.
-pub async fn fetch_pr_head_sha(token: &str, repo: &str, pr_number: u64) -> crate::error::Result<String> {
+pub async fn fetch_pr_head_sha(
+    token: &str,
+    repo: &str,
+    pr_number: u64,
+) -> crate::error::Result<String> {
     #[derive(Deserialize)]
-    struct Ref { sha: String }
+    struct Ref {
+        sha: String,
+    }
     #[derive(Deserialize)]
-    struct PrHead { head: Ref }
+    struct PrHead {
+        head: Ref,
+    }
 
     let url = format!("{GITHUB_API}/repos/{repo}/pulls/{pr_number}");
     let pr: PrHead = reqwest::Client::new()
@@ -77,7 +85,9 @@ pub async fn fetch_pr_head_sha(token: &str, repo: &str, pr_number: u64) -> crate
         .send()
         .await?
         .error_for_status()
-        .map_err(|e| crate::error::MerlinError::Platform(format!("Failed to fetch PR head SHA: {e}")))?
+        .map_err(|e| {
+            crate::error::MerlinError::Platform(format!("Failed to fetch PR head SHA: {e}"))
+        })?
         .json()
         .await?;
 
@@ -526,9 +536,7 @@ impl PlatformClient for GitHubClient {
             .send()
             .await?
             .error_for_status()
-            .map_err(|e| {
-                MerlinError::Platform(format!("Failed to submit batch review: {e}"))
-            })?;
+            .map_err(|e| MerlinError::Platform(format!("Failed to submit batch review: {e}")))?;
         Ok(())
     }
 }

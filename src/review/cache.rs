@@ -8,7 +8,7 @@
 //! # Storage format
 //!
 //! A flat JSON object `{ "path/to/file.rs": "<sha256-hex>", … }` written to
-//! [`ReviewCache::path`].  The file is created on first save and silently
+//! the configured cache path.  The file is created on first save and silently
 //! ignored when missing.
 use std::collections::HashMap;
 
