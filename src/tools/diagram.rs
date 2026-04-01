@@ -34,8 +34,18 @@ impl MerlinTool for DiagramTool {
         let file_entries: Vec<String> = files
             .iter()
             .map(|f| {
-                let additions = f.hunks.iter().flat_map(|h| &h.lines).filter(|l| l.new_line.is_some() && l.old_line.is_none()).count();
-                let deletions = f.hunks.iter().flat_map(|h| &h.lines).filter(|l| l.old_line.is_some() && l.new_line.is_none()).count();
+                let additions = f
+                    .hunks
+                    .iter()
+                    .flat_map(|h| &h.lines)
+                    .filter(|l| l.new_line.is_some() && l.old_line.is_none())
+                    .count();
+                let deletions = f
+                    .hunks
+                    .iter()
+                    .flat_map(|h| &h.lines)
+                    .filter(|l| l.old_line.is_some() && l.new_line.is_none())
+                    .count();
                 format!("- `{}` (+{additions}, -{deletions})", f.path())
             })
             .collect();
@@ -45,15 +55,8 @@ impl MerlinTool for DiagramTool {
             std::collections::HashMap::new();
         for f in &files {
             let path = f.path();
-            let module = path
-                .split('/')
-                .next()
-                .unwrap_or("root")
-                .to_string();
-            modules
-                .entry(module)
-                .or_default()
-                .push(path.to_string());
+            let module = path.split('/').next().unwrap_or("root").to_string();
+            modules.entry(module).or_default().push(path.to_string());
         }
 
         let module_summary: Vec<String> = modules
@@ -103,12 +106,15 @@ impl MerlinTool for DiagramTool {
             diff = diff_summary,
         );
 
-        let response = ctx.ai.generate(
-            "You are a software architect who creates clear, informative Mermaid diagrams \
+        let response = ctx
+            .ai
+            .generate(
+                "You are a software architect who creates clear, informative Mermaid diagrams \
              for pull request reviews. Your diagrams help reviewers understand the scope \
              and impact of code changes at a glance.",
-            &prompt,
-        ).await?;
+                &prompt,
+            )
+            .await?;
 
         let output = format!(
             "## Merlin: PR Architecture Diagram\n\n\

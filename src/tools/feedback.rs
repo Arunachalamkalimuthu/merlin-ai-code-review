@@ -26,14 +26,12 @@ impl MerlinTool for FeedbackTool {
         let stats = store.stats();
 
         if stats.is_empty() {
-            return Ok(
-                "## Merlin: Feedback Learning\n\n\
+            return Ok("## Merlin: Feedback Learning\n\n\
                  No feedback recorded yet. React to review comments with \
                  👍 (accept) or 👎 (reject) to start training.\n\n\
                  Once a pattern accumulates enough rejects, Merlin will \
                  auto-suppress similar comments in future reviews."
-                    .to_string(),
-            );
+                .to_string());
         }
 
         let mut out = String::from("## Merlin: Feedback Learning Status\n\n");
@@ -44,10 +42,7 @@ impl MerlinTool for FeedbackTool {
         ));
 
         // Suppressed patterns
-        let mut suppressed: Vec<_> = stats
-            .iter()
-            .filter(|(_, s)| s.is_suppressed())
-            .collect();
+        let mut suppressed: Vec<_> = stats.iter().filter(|(_, s)| s.is_suppressed()).collect();
         suppressed.sort_by(|a, b| {
             b.1.reject_ratio()
                 .partial_cmp(&a.1.reject_ratio())
@@ -95,9 +90,7 @@ impl MerlinTool for FeedbackTool {
             }
         }
 
-        out.push_str(
-            "\n---\n*React to review comments with 👍/👎 to improve future reviews.*\n",
-        );
+        out.push_str("\n---\n*React to review comments with 👍/👎 to improve future reviews.*\n");
 
         // Post as PR comment if we have a platform
         let _ = ctx.platform.post_summary(&out).await;

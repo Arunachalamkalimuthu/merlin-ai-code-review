@@ -32,7 +32,6 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tracing::{debug, info, warn};
 
-
 // ── Rule types ──────────────────────────────────────────────────────────────
 
 /// A single custom review rule.
@@ -243,8 +242,10 @@ pub fn format_pattern_matches(matches: &[PatternMatch]) -> String {
         return String::new();
     }
     let mut out = String::from("\n## Custom Rule Matches\n\n");
-    out.push_str("The following custom team rules matched in this diff. \
-                  Prioritise these in your review:\n\n");
+    out.push_str(
+        "The following custom team rules matched in this diff. \
+                  Prioritise these in your review:\n\n",
+    );
     for m in matches {
         out.push_str(&format!("- {}\n", m.as_prompt_hint()));
     }

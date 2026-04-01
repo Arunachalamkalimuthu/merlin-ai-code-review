@@ -124,7 +124,10 @@ impl ReviewEngine {
                 })
                 .collect();
             if skipped > 0 {
-                info!("{} file(s) skipped — diff unchanged (incremental mode)", skipped);
+                info!(
+                    "{} file(s) skipped — diff unchanged (incremental mode)",
+                    skipped
+                );
             }
             incremental_cache = Some(cache);
             filtered
@@ -189,8 +192,8 @@ impl ReviewEngine {
         let valid_lines = build_valid_diff_lines(&file_diffs);
         let comments: Vec<ReviewComment> = comments
             .into_iter()
-            .filter_map(|c| {
-                match nearest_valid_line(c.line, &c.file, &valid_lines) {
+            .filter_map(
+                |c| match nearest_valid_line(c.line, &c.file, &valid_lines) {
                     Some(valid_line) => {
                         let mut c = c;
                         c.line = valid_line;
@@ -203,8 +206,8 @@ impl ReviewEngine {
                         );
                         None
                     }
-                }
-            })
+                },
+            )
             .collect();
 
         // 8+9. Submit all comments and summary as a single batched review
@@ -340,7 +343,6 @@ fn determine_review_action(comments: &[ReviewComment]) -> ReviewAction {
     }
 }
 
-
 /// Build a plain Markdown summary without complexity metadata.
 ///
 /// Convenience wrapper over [`build_summary`] used by [`crate::tools`].
@@ -409,9 +411,9 @@ fn count_severity(comments: &[ReviewComment], sev: &Severity) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use super::super::filter::{build_valid_diff_lines, deduplicate, nearest_valid_line};
     use super::*;
     use crate::ai::{Category, Severity};
-    use super::super::filter::{build_valid_diff_lines, deduplicate, nearest_valid_line};
 
     fn make_comment(file: &str, line: u32, sev: Severity) -> ReviewComment {
         ReviewComment {
