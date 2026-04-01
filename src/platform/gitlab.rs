@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use tokio::sync::OnceCell;
 use tracing::{debug, instrument};
 
 use super::{InlineCodeSuggestion, Issue, PlatformClient, PrInfo};
@@ -12,8 +13,8 @@ pub struct GitLabClient {
     base_url: String,
     project_id: String,
     mr_iid: u64,
-    head_sha: String,
     client: reqwest::Client,
+    diff_refs: OnceCell<MrDiffRefs>,
 }
 
 impl GitLabClient {
@@ -23,15 +24,14 @@ impl GitLabClient {
         base_url: String,
         project_id: String,
         mr_iid: u64,
-        head_sha: String,
     ) -> Self {
         Self {
             token,
             base_url,
             project_id,
             mr_iid,
-            head_sha,
             client: reqwest::Client::new(),
+            diff_refs: OnceCell::new(),
         }
     }
 
@@ -45,9 +45,7 @@ impl GitLabClient {
             .map_err(|_| MerlinError::EnvVar("CI_MERGE_REQUEST_IID".to_string()))?
             .parse()
             .map_err(|_| MerlinError::Config("Invalid MR IID".to_string()))?;
-        let head_sha = std::env::var("CI_COMMIT_SHA")
-            .map_err(|_| MerlinError::EnvVar("CI_COMMIT_SHA".to_string()))?;
-        Ok(Self::new(token, base_url, project_id, mr_iid, head_sha))
+        Ok(Self::new(token, base_url, project_id, mr_iid))
     }
 
     fn mr_url(&self, path: &str) -> String {
@@ -60,9 +58,55 @@ impl GitLabClient {
     fn proj_url(&self, path: &str) -> String {
         format!("{}/projects/{}/{}", self.base_url, self.project_id, path)
     }
+
+    /// Fetch and cache the merge request's diff refs (base, start, head SHAs).
+    ///
+    /// GitLab's discussion-thread API requires the correct `base_sha`,
+    /// `start_sha`, and `head_sha` from the MR diff; using a single SHA for
+    /// all three causes `DiffNote::NoteDiffFileCreationError`.
+    async fn diff_refs(&self) -> Result<&MrDiffRefs> {
+        self.diff_refs
+            .get_or_try_init(|| async {
+                let url = format!(
+                    "{}/projects/{}/merge_requests/{}",
+                    self.base_url, self.project_id, self.mr_iid
+                );
+                let resp: MrDiffRefsResponse = self
+                    .client
+                    .get(&url)
+                    .header("PRIVATE-TOKEN", &self.token)
+                    .send()
+                    .await?
+                    .error_for_status()
+                    .map_err(|e| {
+                        MerlinError::Platform(format!("Failed to fetch MR diff refs: {e}"))
+                    })?
+                    .json()
+                    .await?;
+                Ok(resp.diff_refs)
+            })
+            .await
+    }
 }
 
 // ── GitLab API types ──────────────────────────────────────────────────────────
+
+/// The three commit SHAs that anchor a merge-request diff.
+///
+/// Returned inside the MR object as `diff_refs` and required by the
+/// Discussions API to correctly locate the diff file for inline notes.
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct MrDiffRefs {
+    base_sha: String,
+    start_sha: String,
+    head_sha: String,
+}
+
+/// Wrapper for deserializing only the `diff_refs` field from the MR response.
+#[derive(Deserialize)]
+struct MrDiffRefsResponse {
+    diff_refs: MrDiffRefs,
+}
 
 #[derive(Deserialize)]
 struct GitLabDiffFile {
@@ -147,13 +191,14 @@ impl PlatformClient for GitLabClient {
         let url = self.mr_url("discussions");
         let emoji = severity_emoji(&comment.severity);
         let body_text = format_comment(emoji, comment);
+        let refs = self.diff_refs().await?;
 
         let payload = serde_json::json!({
             "body": body_text,
             "position": {
-                "base_sha": self.head_sha,
-                "start_sha": self.head_sha,
-                "head_sha": self.head_sha,
+                "base_sha": refs.base_sha,
+                "start_sha": refs.start_sha,
+                "head_sha": refs.head_sha,
                 "position_type": "text",
                 "new_path": comment.file,
                 "new_line": comment.line
@@ -288,6 +333,7 @@ impl PlatformClient for GitLabClient {
     #[instrument(skip(self, suggestions))]
     async fn post_code_suggestions(&self, suggestions: &[InlineCodeSuggestion]) -> Result<()> {
         let url = self.mr_url("discussions");
+        let refs = self.diff_refs().await?;
         for s in suggestions {
             let body = format!(
                 "{}\n\n```suggestion:-0+0\n{}\n```",
@@ -296,9 +342,9 @@ impl PlatformClient for GitLabClient {
             let payload = serde_json::json!({
                 "body": body,
                 "position": {
-                    "base_sha": self.head_sha,
-                    "start_sha": self.head_sha,
-                    "head_sha": self.head_sha,
+                    "base_sha": refs.base_sha,
+                    "start_sha": refs.start_sha,
+                    "head_sha": refs.head_sha,
                     "position_type": "text",
                     "new_path": s.file,
                     "new_line": s.end_line

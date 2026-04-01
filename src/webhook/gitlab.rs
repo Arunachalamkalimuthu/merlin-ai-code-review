@@ -35,12 +35,6 @@ pub(super) struct GitLabProject {
 #[derive(Deserialize)]
 pub(super) struct GitLabMrRef {
     pub(super) iid: u64,
-    pub(super) last_commit: GitLabCommit,
-}
-
-#[derive(Deserialize)]
-pub(super) struct GitLabCommit {
-    pub(super) id: String,
 }
 
 #[derive(Deserialize)]
@@ -121,7 +115,6 @@ pub async fn gitlab_handler(
         base_url,
         event.project.id.to_string(),
         mr.iid,
-        mr.last_commit.id.clone(),
     )) as Arc<dyn PlatformClient>;
 
     let ai = Arc::clone(&state.ai);
