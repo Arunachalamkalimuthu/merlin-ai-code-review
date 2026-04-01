@@ -13,8 +13,8 @@
 //! # Suppression logic
 //!
 //! A pattern is suppressed when:
-//! - It has at least [`MIN_SAMPLES`] feedback events, **and**
-//! - Its reject ratio exceeds [`SUPPRESS_THRESHOLD`] (default 70 %).
+//! - It has at least 5 feedback events, **and**
+//! - Its reject ratio exceeds 70 %.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

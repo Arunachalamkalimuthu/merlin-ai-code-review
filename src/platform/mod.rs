@@ -132,8 +132,8 @@ pub trait PlatformClient: Send + Sync {
 
     /// Submit all review comments and a summary in a single batched operation.
     ///
-    /// The default implementation calls [`post_inline_comment`] for each
-    /// comment and then [`post_summary`].  Platforms that support a native
+    /// The default implementation calls [`PlatformClient::post_inline_comment`] for each
+    /// comment and then [`PlatformClient::post_summary`].  Platforms that support a native
     /// batch review API (e.g. GitHub Pull Request Reviews) should override this
     /// to collapse N notifications into one.
     ///
