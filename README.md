@@ -58,6 +58,8 @@ CI pipeline triggers Merlin
   - [OpenRouter](#openrouter)
   - [Ollama (local)](#ollama-local--fully-private)
 - [RAG — Context-Aware Reviews](#rag--context-aware-reviews)
+- [Custom Rules Engine](#custom-rules-engine)
+- [Adaptive Feedback Learning](#adaptive-feedback-learning)
 - [Slash Commands](#slash-commands)
 - [Webhook & Bot Mode](#webhook--bot-mode)
 - [Autonomous Agent](#autonomous-agent)
@@ -79,7 +81,10 @@ CI pipeline triggers Merlin
 |---|---|
 | **AI providers** | Anthropic Claude, OpenAI, Google Gemini, AWS Bedrock, Azure OpenAI, Groq, Together AI, DeepSeek, Mistral AI, OpenRouter, Ollama (local), Claude Code CLI |
 | **VCS platforms** | GitHub, GitLab, Bitbucket, Azure DevOps, Gitea — auto-detected from CI environment |
-| **Slash commands** | 20+ commands triggered from PR comments (`@merlin /review`) or CLI (`merlin run /spec`) |
+| **Slash commands** | 22 commands triggered from PR comments (`@merlin /review`) or CLI (`merlin run /spec`) |
+| **Custom rules engine** | `.merlin-rules.yaml` — regex patterns, natural-language directives, and path-scoped rules |
+| **Adaptive feedback** | Learns from 👍/👎 reactions to suppress noisy comment patterns over time |
+| **PR architecture diagrams** | `/diagram` generates Mermaid diagrams showing module relationships and data flow |
 | **RAG pipeline** | Index your codebase; reviews include semantically relevant file context |
 | **Bot mode** | Persistent webhook server that reacts to PR comment events automatically |
 | **Autonomous agent** | ReAct-loop agent with Slack, Discord, and CLI channels |
@@ -957,6 +962,81 @@ The index persists in Qdrant between CI runs — no file caching step needed.
 
 ---
 
+## Custom Rules Engine
+
+Define team-specific review rules in `.merlin-rules.yaml`. Rules can be regex patterns matched against diffs, natural-language directives injected into the AI prompt, or both — optionally scoped to specific file paths.
+
+### Example `.merlin-rules.yaml`
+
+```yaml
+rules:
+  # Regex pattern rule — flags matching code in the diff
+  - name: no-unwrap
+    pattern: "unwrap\\(\\)"
+    severity: high
+    message: "Avoid unwrap() in production code — use ? or expect() with context"
+
+  # Natural-language directive — injected into the AI system prompt
+  - name: require-error-handling
+    directive: "All public API functions must handle errors explicitly with Result"
+
+  # Path-scoped rule — only applies to files matching the glob
+  - name: auth-review
+    path_match: "src/auth/**"
+    directive: "Flag any changes to authentication logic as Critical severity"
+
+  # Combined: regex + path scope
+  - name: no-sql-string-concat
+    pattern: "format!.*SELECT|format!.*INSERT|format!.*UPDATE"
+    path_match: "src/db/**"
+    severity: critical
+    message: "Never build SQL with string formatting — use parameterised queries"
+```
+
+### Configuration
+
+```toml
+# merlin.toml
+[review]
+rules_file = ".merlin-rules.yaml"   # default path
+```
+
+Rules are loaded automatically on every review run. Regex pattern matches are prepended to the AI context as hints, and directive rules are appended to the system prompt as numbered team rules.
+
+---
+
+## Adaptive Feedback Learning
+
+Merlin learns from your team's reactions to review comments. Over time, comment patterns that are consistently rejected (👎) are auto-suppressed, reducing noise without manual rule authoring.
+
+### How it works
+
+1. React to review comments with 👍 (accept) or 👎 (reject)
+2. Merlin records each reaction keyed by `category:title` pattern
+3. Once a pattern has 5+ events and >70% rejection rate, it's suppressed
+4. Run `/feedback` to see current learning status and suppressed patterns
+
+### Configuration
+
+```toml
+# merlin.toml
+[review]
+feedback_learning = true                     # enable adaptive filtering
+feedback_path     = ".merlin-feedback.jsonl"  # where to store feedback data
+```
+
+### Viewing status
+
+```bash
+merlin run /feedback
+# or from a PR comment:
+@merlin /feedback
+```
+
+The feedback file is a simple JSONL format — commit it to your repo so the entire team benefits from shared learning, or add it to `.gitignore` for per-environment learning.
+
+---
+
 ## Slash Commands
 
 Trigger commands from a PR comment using `@merlin /command`, or run them directly in CI with `merlin run /command`.
@@ -983,6 +1063,8 @@ Trigger commands from a PR comment using `@merlin /command`, or run them directl
 | `/link_jira` | Find and link related Jira issues | PR comment |
 | `/link_linear` | Find and link related Linear issues | PR comment |
 | `/triage` | Find similar open issues on CodeTriage | PR comment |
+| `/diagram` | Generate a Mermaid architecture diagram of the PR changes | PR comment |
+| `/feedback` | Show adaptive feedback learning status and suppressed patterns | PR comment |
 
 ### Examples
 
@@ -1131,6 +1213,13 @@ chunk_lines  = 200
 # Second AI pass to filter false positives (slower but more accurate)
 reflect      = false
 
+# Custom rules file (regex patterns + natural-language directives)
+rules_file   = ".merlin-rules.yaml"
+
+# Adaptive feedback learning — suppresses consistently rejected comment patterns
+feedback_learning = false
+feedback_path     = ".merlin-feedback.jsonl"
+
 [platform]
 # Auto-detected from CI env vars. Override only if needed:
 # type = "github"   # "github" | "gitlab" | "bitbucket" | "azure-devops" | "gitea"
@@ -1238,6 +1327,8 @@ merlin run /coverage
 merlin run /link_jira
 merlin run /link_linear
 merlin run /triage
+merlin run /diagram
+merlin run /feedback
 merlin run /docs              # auto-detect best doc type
 merlin run /docs readme       # generate README section
 merlin run /docs api          # generate API reference
@@ -1338,10 +1429,16 @@ CLI (clap)
   │           └── VectorStore  (local | memory | qdrant | chroma | pinecone)
   │                 └── search() → Vec<RetrievedDoc> → injected into AI prompt
   │
+  ├── RulesEngine  (custom review rules)
+  │     └── .merlin-rules.yaml → regex patterns + directives → AI prompt injection
+  │
+  ├── FeedbackStore  (adaptive learning)
+  │     └── .merlin-feedback.jsonl → accept/reject signals → auto-suppress noisy patterns
+  │
   ├── ToolRouter  (slash commands)
-  │     ├── /spec, /review, /describe, /ask, /improve
+  │     ├── /spec, /review, /describe, /ask, /improve, /diagram
   │     ├── /generate_labels, /update_changelog, /add_doc, /similar_issue
-  │     ├── /test, /explain, /security, /approve, /commit_message
+  │     ├── /test, /explain, /security, /approve, /commit_message, /feedback
   │     ├── /docs, /snyk, /coverage, /link_jira, /link_linear, /triage
   │     └── Webhook server (axum) — dispatches commands from PR comments
   │

@@ -177,9 +177,19 @@ pub fn system_prompt(focus: &[String]) -> String {
 ///
 /// If a persona provides `focus_override`, those categories replace `focus`.
 /// Custom `rules` are appended as a numbered list after the base prompt.
+/// Additional `rule_directives` from the custom rules engine are also appended.
 pub fn system_prompt_with_persona(
     focus: &[String],
     persona: Option<&crate::config::PersonaConfig>,
+) -> String {
+    system_prompt_with_rules(focus, persona, &[])
+}
+
+/// Build the code-review system prompt with persona overrides and custom rule directives.
+pub fn system_prompt_with_rules(
+    focus: &[String],
+    persona: Option<&crate::config::PersonaConfig>,
+    rule_directives: &[String],
 ) -> String {
     let effective_focus = persona
         .and_then(|p| p.focus_override.as_ref())
@@ -219,6 +229,14 @@ pub fn system_prompt_with_persona(
             if !extra.is_empty() {
                 prompt.push_str(&format!("\n\n{extra}"));
             }
+        }
+    }
+
+    // Append custom rules engine directives
+    if !rule_directives.is_empty() {
+        prompt.push_str("\n\n## Custom Team Rules\n\nEnforce these team-specific rules:\n");
+        for (i, directive) in rule_directives.iter().enumerate() {
+            prompt.push_str(&format!("{}. {}\n", i + 1, directive));
         }
     }
 

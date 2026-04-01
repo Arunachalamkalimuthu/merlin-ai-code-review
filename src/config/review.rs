@@ -29,6 +29,16 @@ pub struct ReviewConfig {
     /// Path to the incremental review cache file (default: `.merlin-cache.json`).
     #[serde(default = "default_cache_path")]
     pub cache_path: String,
+    /// Enable adaptive feedback learning — suppresses comment patterns that
+    /// are consistently rejected by reviewers (default: `false`).
+    #[serde(default)]
+    pub feedback_learning: bool,
+    /// Path to the feedback data file (default: `.merlin-feedback.jsonl`).
+    #[serde(default = "default_feedback_path")]
+    pub feedback_path: String,
+    /// Path to the custom rules file (default: `.merlin-rules.yaml`).
+    #[serde(default = "default_rules_file")]
+    pub rules_file: String,
 }
 
 fn default_focus() -> Vec<String> {
@@ -52,6 +62,14 @@ fn default_cache_path() -> String {
     ".merlin-cache.json".to_string()
 }
 
+fn default_feedback_path() -> String {
+    ".merlin-feedback.jsonl".to_string()
+}
+
+fn default_rules_file() -> String {
+    ".merlin-rules.yaml".to_string()
+}
+
 impl Default for ReviewConfig {
     fn default() -> Self {
         ReviewConfig {
@@ -62,6 +80,9 @@ impl Default for ReviewConfig {
             persona: PersonaConfig::default(),
             incremental: false,
             cache_path: default_cache_path(),
+            feedback_learning: false,
+            feedback_path: default_feedback_path(),
+            rules_file: default_rules_file(),
         }
     }
 }

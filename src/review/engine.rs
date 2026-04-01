@@ -28,9 +28,11 @@ use crate::config::ReviewConfig;
 use crate::diff::{parse_diff, FileDiff};
 use crate::digest::complexity_score;
 use crate::error::Result;
+use crate::feedback::FeedbackStore;
 use crate::platform::{PlatformClient, ReviewAction};
 use crate::rag::RagPipeline;
 use crate::review::cache::{diff_hash, ReviewCache};
+use crate::rules::RulesEngine;
 
 use super::filter::{build_valid_diff_lines, deduplicate, nearest_valid_line, reflect_and_review};
 
@@ -49,22 +51,27 @@ pub struct ReviewEngine {
     /// Optional RAG pipeline — when present, relevant codebase context is prepended
     /// to each AI review chunk.
     pub rag: Option<Arc<RagPipeline>>,
+    /// Custom rules engine loaded from `.merlin-rules.yaml`.
+    rules: RulesEngine,
 }
 
 impl ReviewEngine {
     /// Create a new engine without a RAG pipeline.
     ///
+    /// Automatically loads custom rules from the configured rules file.
     /// To add RAG context injection, chain [`ReviewEngine::with_rag`].
     pub fn new(
         ai: Arc<dyn AiProvider>,
         platform: Arc<dyn PlatformClient>,
         config: ReviewConfig,
     ) -> Self {
+        let rules = RulesEngine::load(&config.rules_file);
         Self {
             ai,
             platform,
             config,
             rag: None,
+            rules,
         }
     }
 
@@ -156,6 +163,17 @@ impl ReviewEngine {
 
         // 7. Deduplicate, sort, cap
         let mut comments = deduplicate(comments);
+
+        // 7.5 Adaptive feedback filtering — suppress patterns that are consistently rejected
+        if self.config.feedback_learning {
+            let store = FeedbackStore::load(&self.config.feedback_path);
+            let (filtered, suppressed) = store.filter_comments(comments);
+            if suppressed > 0 {
+                info!("{suppressed} comment(s) suppressed by adaptive feedback learning");
+            }
+            comments = filtered;
+        }
+
         comments.sort_by(|a, b| a.severity.cmp(&b.severity));
         if comments.len() > self.config.max_comments {
             warn!(
@@ -277,6 +295,16 @@ impl ReviewEngine {
                     Err(e) => warn!("RAG retrieve failed (continuing without context): {e}"),
                 }
             }
+
+            // Inject custom rule matches as context hints for the AI
+            if !self.rules.is_empty() {
+                let matches = self.rules.check_diff(&ctx.file, &ctx.diff_hunk);
+                let hint = crate::rules::format_pattern_matches(&matches);
+                if !hint.is_empty() {
+                    ctx.diff_hunk = format!("{hint}{}", ctx.diff_hunk);
+                }
+            }
+
             let ai = Arc::clone(&self.ai);
             join_set.spawn(async move { ai.review(&ctx).await });
         }
