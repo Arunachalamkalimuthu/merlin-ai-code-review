@@ -19,12 +19,7 @@ pub struct GitLabClient {
 
 impl GitLabClient {
     /// Create a new GitLab client from the given parameters.
-    pub fn new(
-        token: String,
-        base_url: String,
-        project_id: String,
-        mr_iid: u64,
-    ) -> Self {
+    pub fn new(token: String, base_url: String, project_id: String, mr_iid: u64) -> Self {
         Self {
             token,
             base_url,
