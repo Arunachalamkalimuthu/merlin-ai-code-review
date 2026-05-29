@@ -1,5 +1,5 @@
 # ── Build stage ──────────────────────────────────────────────────────────────
-FROM rust:1.85-alpine AS builder
+FROM rust:1.96-alpine AS builder
 
 RUN apk add --no-cache musl-dev pkgconf openssl-dev
 
@@ -18,7 +18,7 @@ RUN touch src/main.rs src/lib.rs
 RUN cargo build --release --locked
 
 # ── Final stage ───────────────────────────────────────────────────────────────
-FROM alpine:3.20
+FROM alpine:3.23
 
 RUN apk add --no-cache ca-certificates
 
