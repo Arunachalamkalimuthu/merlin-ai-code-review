@@ -1,7 +1,7 @@
 # ── CI Docker image ───────────────────────────────────────────────────────────
 # Uses pre-built binaries from the release workflow instead of compiling from
 # source, which avoids slow QEMU-emulated Rust compilation for arm64.
-FROM alpine:3.20
+FROM alpine:3.23
 ARG TARGETARCH
 
 RUN apk add --no-cache ca-certificates
